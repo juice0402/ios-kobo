@@ -28,6 +28,7 @@ final class ScreenshotTests: XCTestCase {
                 let app = XCUIApplication()
                 app.launchArguments = ["-AppleLanguages", "(\(lang))", "-AppleLocale", lang.replacingOccurrences(of: "-", with: "_")]
                 app.launchEnvironment["SHOT_JS"] = scene.js ?? ""
+                print("SHOT start \(lang) \(scene.name)")
                 app.launch()
                 XCTAssertTrue(app.wait(for: .runningForeground, timeout: 30))
                 Thread.sleep(forTimeInterval: scene.wait)
@@ -36,6 +37,7 @@ final class ScreenshotTests: XCTestCase {
                 attachment.name = "\(lang)__\(scene.name)"
                 attachment.lifetime = .keepAlways
                 add(attachment)
+                print("SHOT done \(lang) \(scene.name)")
                 app.terminate()
             }
         }

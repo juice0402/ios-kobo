@@ -116,20 +116,11 @@ jobs:
 
       - name: シミュレーターで組み立ててスクショを撮る
         if: env.MODE != 'testflight'
-        run: |
-          P="build/$APP/project/App.xcodeproj"
-          xcodebuild build-for-testing -project "$P" -scheme App -destination 'generic/platform=iOS Simulator' \
-            -derivedDataPath build/dd CODE_SIGNING_ALLOWED=NO -quiet
-          for kind in iphone ipad; do
-            UDID=$(python3 scripts/shots.py pick "$kind")
-            xcodebuild test-without-building -project "$P" -scheme App -destination "id=$UDID" \
-              -derivedDataPath build/dd -resultBundlePath "build/$APP/$kind.xcresult" -quiet
-            python3 scripts/shots.py export "build/$APP/$kind.xcresult" "build/$APP/fastlane/screenshots" "$kind"
-          done
+        run: bash scripts/screens.sh "$APP"
 
       - name: スクショを保存
         if: always() && env.MODE != 'testflight'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: screenshots-${{ matrix.app }}
           path: build/${{ matrix.app }}/fastlane/screenshots
