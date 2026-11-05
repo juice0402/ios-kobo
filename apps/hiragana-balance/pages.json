@@ -1,0 +1,46 @@
+{
+  "privacyDate": "2026-11-06",
+  "about": {
+    "ja": "ひらがなを一文字ずつ机の上に落として、どこまで高く積めるかを競う物理パズルです。iPhone と iPad で遊べます。",
+    "en": "A physics puzzle where you drop hiragana letters onto a desk, one at a time, and see how high you can stack them. Works on iPhone and iPad."
+  },
+  "workshopUrl": "https://asobi-talk.com/kobo/hiragana-balance",
+  "faq": {
+    "ja": [
+      [
+        "音が出ません",
+        "iPhone の消音スイッチがサイレントになっていると鳴りません。右下の歯車の「おと」も確かめてください。"
+      ],
+      [
+        "最高記録はどこに残りますか",
+        "端末の中だけです。アプリを削除すると記録も消えます。"
+      ],
+      [
+        "言語を変えたい",
+        "最初は端末の言語に合わせて表示します。右下の歯車の「ことば」から15の言語をえらべます。"
+      ],
+      [
+        "ネットにつないでいないと遊べませんか",
+        "つながなくても遊べます。ゲームはすべてアプリの中に入っています。"
+      ]
+    ],
+    "en": [
+      [
+        "There is no sound",
+        "If your iPhone is set to Silent, the game stays quiet. Please also check Sound under the gear in the lower right corner."
+      ],
+      [
+        "Where is my best score saved?",
+        "Only on your device. Deleting the app also deletes the score."
+      ],
+      [
+        "How do I change the language?",
+        "The game starts in your device's language. You can pick any of the 15 languages from Language under the gear."
+      ],
+      [
+        "Do I need an internet connection?",
+        "No. The whole game is inside the app and works offline."
+      ]
+    ]
+  }
+}

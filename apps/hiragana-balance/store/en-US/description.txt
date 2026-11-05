@@ -1,0 +1,11 @@
+Drop hiragana letters onto a desk one at a time and see how high you can stack them.
+
+Drag a letter, then let go to drop it. Use the arrows on either side to rotate it. When a letter falls off the desk the round is over, and your score is the number of letters you stacked.
+
+The 46 letters, from あ (a) to ん (n), are shaped after a brush calligraphy typeface. Some are round and some are wide and flat, so no two towers ever turn out the same. Letters come in two sizes, and the next one is shown in the top right corner.
+
+The look is graph paper and a school desk. Letters have a soft ink texture, and every 10 letters you stack earns a red-pen flower mark.
+
+Play in any of 15 languages. While you hold a letter, its romaji reading is shown underneath, so you pick up hiragana as you go.
+
+Works offline, with no ads or accounts, and collects no data.

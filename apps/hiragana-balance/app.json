@@ -1,0 +1,81 @@
+{
+  "bundleId": "com.asobi-talk.hiragana-balance",
+  "version": "1.0",
+  "name": {
+    "ja": "ひらがなバランス",
+    "en": "Hiragana Balance"
+  },
+  "game": {
+    "repo": "juice0402/hiragana-balance",
+    "ref": "58396a1aa09c7bf78b01a50002a12b629f2d46c2",
+    "file": "index.html"
+  },
+  "languages": [
+    "en",
+    "ja",
+    "zh-Hans",
+    "zh-Hant",
+    "ko",
+    "es",
+    "pt",
+    "fr",
+    "de",
+    "it",
+    "ru",
+    "id",
+    "tr",
+    "vi",
+    "th"
+  ],
+  "langGlobals": [
+    "HB_LANGS"
+  ],
+  "devices": [
+    "iphone",
+    "ipad"
+  ],
+  "iphoneOrientation": "portrait",
+  "safeArea": "ignore",
+  "fitSize": [
+    424,
+    644
+  ],
+  "background": "#D9CDB8",
+  "category": "public.app-category.puzzle-games",
+  "store": {
+    "primaryCategory": "GAMES",
+    "subcategories": [
+      "GAMES_PUZZLE",
+      "GAMES_CASUAL"
+    ],
+    "copyright": "2026 Hanpen (asobi-talk.com)"
+  },
+  "privacy": {
+    "stored": {
+      "ja": "最高記録、音のオン・オフ、えらんだ言語",
+      "en": "your best score, the sound on/off setting and the language you picked"
+    }
+  },
+  "screenshots": {
+    "languages": [
+      "ja",
+      "en-US"
+    ],
+    "scenes": [
+      {
+        "name": "1-title",
+        "wait": 4
+      },
+      {
+        "name": "2-play",
+        "wait": 20,
+        "js": "(function(){var s=7;Math.random=function(){s=s*16807%2147483647;return(s-1)/2147483646};var c=document.getElementById('gameCanvas'),n=0;function sc(){return parseInt(document.getElementById('scoreVal').textContent,10)||0}function over(){return !!document.getElementById('retryBtn').offsetParent}function drop(dx){var r=c.getBoundingClientRect(),x=r.left+r.width/2+dx*r.width/400,y=r.bottom-4,o={clientX:x,clientY:y,bubbles:true,pointerId:1,isPrimary:true};c.dispatchEvent(new PointerEvent('pointerdown',o));window.dispatchEvent(new PointerEvent('pointerup',o))}var o=[0,0,0,0,0,0];function t(){if(over())return;if(sc()>=n){if(n>=o.length)return;drop(o[n]);n++}setTimeout(t,300)}document.getElementById('startBtn').click();setTimeout(t,1200)})();"
+      },
+      {
+        "name": "3-over",
+        "wait": 16,
+        "js": "(function(){var s=5;Math.random=function(){s=s*16807%2147483647;return(s-1)/2147483646};var c=document.getElementById('gameCanvas'),n=0;function sc(){return parseInt(document.getElementById('scoreVal').textContent,10)||0}function over(){return !!document.getElementById('retryBtn').offsetParent}function drop(dx){var r=c.getBoundingClientRect(),x=r.left+r.width/2+dx*r.width/400,y=r.bottom-4,o={clientX:x,clientY:y,bubbles:true,pointerId:1,isPrimary:true};c.dispatchEvent(new PointerEvent('pointerdown',o));window.dispatchEvent(new PointerEvent('pointerup',o))}function t(){if(over())return;if(sc()>=n){drop(n<6?(n%2?6:-6):130);n++}setTimeout(t,300)}document.getElementById('startBtn').click();setTimeout(t,1200)})();"
+      }
+    ]
+  }
+}

@@ -1,0 +1,158 @@
+name: iOS アプリ
+
+# check      … Mac で組み立てて、シミュレーターでスクショを撮る（Apple の鍵はいらない）
+# testflight … 署名して TestFlight に送る
+# store      … ストアの文とスクショを App Store Connect に送る（審査には出さない）
+# review     … ストアの文とスクショを送って、審査に出す
+on:
+  workflow_dispatch:
+    inputs:
+      app:
+        description: アプリ（apps/ の中のフォルダ名）
+        required: true
+        default: hiragana-balance
+      mode:
+        description: すること
+        type: choice
+        options: [check, testflight, store, review]
+        default: check
+      ref:
+        description: ゲームの版（コミットやタグ。空なら app.json のまま）
+        required: false
+        default: ""
+  # ゲームのリポジトリのリリースから呼ぶとき: {"app": "...", "ref": "v1.2", "mode": "testflight"}
+  repository_dispatch:
+    types: [game-release]
+  push:
+    branches: [main]
+    paths: ["apps/**", "shell/**", "scripts/**", ".github/workflows/ios.yml"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-${{ github.event.inputs.app || github.event.client_payload.app || 'all' }}
+  cancel-in-progress: false
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      apps: ${{ steps.p.outputs.apps }}
+      mode: ${{ steps.p.outputs.mode }}
+      ref: ${{ steps.p.outputs.ref }}
+    steps:
+      - uses: actions/checkout@v5
+      - id: p
+        env:
+          EVENT: ${{ github.event_name }}
+        run: |
+          python3 - <<'EOF'
+          import json, os, re
+          from pathlib import Path
+          ev = json.load(open(os.environ["GITHUB_EVENT_PATH"]))
+          name = os.environ["EVENT"]
+          if name == "workflow_dispatch":
+              i = ev["inputs"]; apps, mode, ref = [i["app"]], i["mode"], i.get("ref", "")
+          elif name == "repository_dispatch":
+              p = ev.get("client_payload", {}); apps, mode, ref = [p.get("app", "")], p.get("mode", "testflight"), p.get("ref", "")
+          else:
+              apps, mode, ref = sorted(d.name for d in Path("apps").iterdir() if (d / "app.json").exists()), "check", ""
+          for a in apps:
+              if not re.fullmatch(r"[a-z0-9][a-z0-9-]*", a) or not Path(f"apps/{a}/app.json").exists():
+                  raise SystemExit(f"::error::apps/{a}/app.json がありません")
+          if mode not in ("check", "testflight", "store", "review"):
+              raise SystemExit(f"::error::mode は check / testflight / store / review")
+          if ref and not re.fullmatch(r"[A-Za-z0-9._/-]+", ref):
+              raise SystemExit("::error::ref に使えない文字があります")
+          with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+              f.write(f"apps={json.dumps(apps)}\nmode={mode}\nref={ref}\n")
+          print(apps, mode, ref)
+          EOF
+
+  build:
+    needs: plan
+    runs-on: macos-26
+    timeout-minutes: 75
+    strategy:
+      fail-fast: false
+      matrix:
+        app: ${{ fromJSON(needs.plan.outputs.apps) }}
+    env:
+      APP: ${{ matrix.app }}
+      MODE: ${{ needs.plan.outputs.mode }}
+      GAME_REF: ${{ needs.plan.outputs.ref }}
+      BUILD_NO: ${{ github.run_number }}.${{ github.run_attempt }}
+      ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+      ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+      ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Apple の鍵の確認
+        if: env.MODE != 'check' && (env.ASC_KEY_ID == '' || env.ASC_ISSUER_ID == '' || env.ASC_KEY_P8 == '' || env.APPLE_TEAM_ID == '')
+        run: |
+          echo "::error::Secrets（ASC_KEY_ID・ASC_ISSUER_ID・ASC_KEY_P8・APPLE_TEAM_ID）がそろっていません"
+          exit 1
+
+      - name: Xcode をえらぶ
+        run: |
+          X=$(ls -d /Applications/Xcode_26*.app | grep -v -i -E 'beta|candidate' | sort -V | tail -1)
+          sudo xcode-select -s "$X"
+          xcodebuild -version | head -1
+
+      - name: 道具を入れる
+        run: |
+          brew install xcodegen >/dev/null
+          python3 -m venv "$RUNNER_TEMP/venv"
+          "$RUNNER_TEMP/venv/bin/pip" install -q fonttools pillow pyjwt cryptography
+          echo "$RUNNER_TEMP/venv/bin" >> "$GITHUB_PATH"
+
+      - name: ゲームを取りこんでプロジェクトを作る
+        run: |
+          python3 scripts/prepare.py "$APP" --ref "$GAME_REF" --build-number "$BUILD_NO"
+          cd "build/$APP/project" && xcodegen generate --spec project.json --quiet
+
+      - name: シミュレーターで組み立ててスクショを撮る
+        if: env.MODE != 'testflight'
+        run: |
+          P="build/$APP/project/App.xcodeproj"
+          xcodebuild build-for-testing -project "$P" -scheme App -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build/dd CODE_SIGNING_ALLOWED=NO -quiet
+          for kind in iphone ipad; do
+            UDID=$(python3 scripts/shots.py pick "$kind")
+            xcodebuild test-without-building -project "$P" -scheme App -destination "id=$UDID" \
+              -derivedDataPath build/dd -resultBundlePath "build/$APP/$kind.xcresult" -quiet
+            python3 scripts/shots.py export "build/$APP/$kind.xcresult" "build/$APP/fastlane/screenshots" "$kind"
+          done
+
+      - name: スクショを保存
+        if: always() && env.MODE != 'testflight'
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshots-${{ matrix.app }}
+          path: build/${{ matrix.app }}/fastlane/screenshots
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: バンドル ID とアプリの確認
+        id: asc
+        if: env.MODE != 'check'
+        run: python3 scripts/asc.py setup
+
+      - name: TestFlight に送る
+        if: env.MODE == 'testflight' && steps.asc.outputs.has_app == 'true'
+        run: bash scripts/upload.sh "$APP" "$BUILD_NO"
+
+      - name: ストアの文とスクショを送る（review なら審査に出す）
+        if: (env.MODE == 'store' || env.MODE == 'review') && steps.asc.outputs.has_app == 'true'
+        run: |
+          python3 scripts/asc.py key-json "$RUNNER_TEMP/asc_key.json"
+          SUBMIT=false; [ "$MODE" = review ] && SUBMIT=true
+          fastlane deliver --api_key_path "$RUNNER_TEMP/asc_key.json" --platform ios \
+            --app_identifier "$BUNDLE_ID" --app_version "$APP_VERSION" \
+            --metadata_path "build/$APP/fastlane/metadata" --screenshots_path "build/$APP/fastlane/screenshots" \
+            --skip_binary_upload true --overwrite_screenshots true --force true \
+            --run_precheck_before_submit false --automatic_release false \
+            --submit_for_review "$SUBMIT" --submission_information '{"add_id_info_uses_idfa": false}'
