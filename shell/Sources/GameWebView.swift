@@ -143,7 +143,7 @@ final class GameHostView: UIView {
         let addCSS = "(function(){var s=document.createElement('style');s.textContent=\(Self.jsString(css));document.head.appendChild(s)})();"
         ucc.addUserScript(WKUserScript(source: addCSS, injectionTime: .atDocumentEnd, forMainFrameOnly: true))
 
-        // スクショの自動撮影のときだけ（UI テストが渡す）
+        // スクショの自動撮影のときだけ（scripts/screens.sh が環境変数で渡す）
         if let shot = ProcessInfo.processInfo.environment["SHOT_JS"], !shot.isEmpty {
             let run = "window.addEventListener('load',function(){setTimeout(function(){try{\(shot)}catch(e){console.log(e)}},400)});"
             ucc.addUserScript(WKUserScript(source: run, injectionTime: .atDocumentEnd, forMainFrameOnly: true))

@@ -214,7 +214,6 @@ def localized_name(cfg, lang):
 
 def make_project(app, cfg, proj, build_number):
     shutil.copytree(ROOT / "shell" / "Sources", proj / "Sources")
-    shutil.copytree(ROOT / "shell" / "UITests", proj / "UITests")
     shutil.copy2(ROOT / "shell" / "PrivacyInfo.xcprivacy", proj / "PrivacyInfo.xcprivacy")
 
     # アイコン（透明なしの 1024px が必須）と色
@@ -247,9 +246,6 @@ def make_project(app, cfg, proj, build_number):
         f = proj / "Resources" / f"{lang}.lproj" / "InfoPlist.strings"
         f.parent.mkdir(parents=True, exist_ok=True)
         f.write_text(f'"CFBundleDisplayName" = "{name}";\n"CFBundleName" = "{name}";\n', encoding="utf-8")
-
-    # スクショの台本
-    write_json(proj / "UITests" / "shots.json", cfg.get("screenshots", {"languages": ["en-US"], "scenes": [{"name": "1", "wait": 4}]}))
 
     devices = cfg.get("devices", ["iphone", "ipad"])
     family = ",".join(x for x, d in (("1", "iphone"), ("2", "ipad")) if d in devices)
@@ -309,18 +305,8 @@ def make_project(app, cfg, proj, build_number):
                     "SUPPORTS_MACCATALYST": "NO", "SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD": "NO",
                     "SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD": "NO"}},
             },
-            "AppUITests": {
-                "type": "bundle.ui-testing", "platform": "iOS", "deploymentTarget": min_ios,
-                "sources": [{"path": "UITests"}],
-                "dependencies": [{"target": "App"}],
-                "settings": {"base": {"PRODUCT_BUNDLE_IDENTIFIER": bundle_id + ".uitests",
-                                      "GENERATE_INFOPLIST_FILE": "YES", "TEST_TARGET_NAME": "App",
-                                      "TARGETED_DEVICE_FAMILY": family, "CODE_SIGN_STYLE": "Automatic"}},
-            },
         },
-        "schemes": {"App": {"build": {"targets": {"App": "all", "AppUITests": ["test"]}},
-                            "test": {"config": "Debug", "targets": ["AppUITests"]},
-                            "archive": {"config": "Release"}}},
+        "schemes": {"App": {"build": {"targets": {"App": "all"}}, "archive": {"config": "Release"}}},
     }
     write_json(proj / "project.json", spec)
     return product
