@@ -10,7 +10,7 @@ limit() { local s="$1"; shift; perl -e 'alarm shift; exec @ARGV' "$s" "$@"; }
 limit 1200 xcodebuild build -project "build/$APP/project/App.xcodeproj" -scheme App -configuration Debug \
   -destination 'generic/platform=iOS Simulator' -derivedDataPath build/dd CODE_SIGNING_ALLOWED=NO -quiet || exit 1
 APP_PATH=$(ls -d build/dd/Build/Products/Debug-iphonesimulator/*.app | head -1)
-echo "組み立て: $APP_PATH（$(du -sh "$APP_PATH" | cut -f1)）"
+echo "組み立て: ${APP_PATH} （$(du -sh "${APP_PATH}" | cut -f1)）"
 
 UDID=$(python3 scripts/shots.py pick iphone) || exit 1
 limit 300 xcrun simctl boot "$UDID" 2>/dev/null

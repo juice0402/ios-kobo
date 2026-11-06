@@ -14,6 +14,7 @@ import argparse
 import json
 import os
 import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -372,7 +373,7 @@ def main():
 
     env = {"BUNDLE_ID": cfg["bundleId"], "APP_VERSION": cfg["version"], "PRODUCT_NAME": product,
            "GAME_SHA": sha, "APP_NAME_EN": cfg["name"]["en"]}
-    (out / "app.env").write_text("".join(f"{k}={v}\n" for k, v in env.items()), encoding="utf-8")
+    (out / "app.env").write_text("".join(f"{k}={shlex.quote(v)}\n" for k, v in env.items()), encoding="utf-8")
     if os.environ.get("GITHUB_ENV"):
         with open(os.environ["GITHUB_ENV"], "a", encoding="utf-8") as f:
             f.write("".join(f"{k}={v}\n" for k, v in env.items()))
