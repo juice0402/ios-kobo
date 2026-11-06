@@ -174,6 +174,24 @@ def localize_fonts(html, game_dir):
     return html
 
 
+def inject_skin(html, cfg, game_dir):
+    """app.json の skin があれば、skins/<名前>/skin.json の中身を window.APP_SKIN でゲームに渡す
+    （アプリの中のページはファイルなので、ゲームが skin.json を fetch で読めないため）"""
+    name = cfg.get("skin")
+    if not name:
+        return html
+    if not re.fullmatch(r"[a-z0-9-]{1,24}", name):
+        fail(f"skin の名前に使えない文字があります: {name}")
+    skin_json = game_dir / "skins" / name / "skin.json"
+    if not skin_json.exists():
+        fail(f"skins/{name}/skin.json がありません（app.json の game.extra に skins/{name} を入れる）")
+    data = json.dumps({"name": name, "cfg": json.loads(skin_json.read_text(encoding="utf-8"))}, ensure_ascii=False)
+    if "<head>" not in html:
+        fail("ゲームの HTML に <head> がありません")
+    say(f"スキン: {name}")
+    return html.replace("<head>", f"<head>\n<script>window.APP_SKIN={data};</script>", 1)
+
+
 # ---------------------------------------------------------------- 3. オフラインの点検
 ONLINE_PATTERNS = [
     (r'<(?:script|img|audio|video|source|iframe|embed|track|object)\b[^>]*\b(?:src|data)\s*=\s*["\']?(?:https?:)?//', "src"),
@@ -380,6 +398,7 @@ def main():
     index = game_dir / "index.html"
     html = index.read_text(encoding="utf-8")
     html = localize_fonts(html, game_dir)
+    html = inject_skin(html, cfg, game_dir)
     index.write_text(html, encoding="utf-8")
     offline_check(game_dir, cfg.get("allowOnline", []))
     product = make_project(a.app, cfg, proj, a.build_number)
