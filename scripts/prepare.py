@@ -157,6 +157,14 @@ def localize_fonts(html, game_dir):
                 out_name = f"{family.replace(' ', '')}-{w}.ttf"
                 font.save(game_dir / "fonts" / out_name)
                 kb = (game_dir / "fonts" / out_name).stat().st_size // 1024
+                # フォントのライセンスの文もいっしょに入れる（OFL は配るときに文を添える決まり）
+                lic = path.name.split("-", 1)[0]
+                lic_file = {"ofl": "OFL.txt", "apache": "LICENSE.txt", "ufl": "UFL.txt"}[lic]
+                lic_dest = game_dir / "fonts" / f"{family.replace(' ', '')}-{lic_file}"
+                if not lic_dest.exists():
+                    folder = family.lower().replace(" ", "")
+                    with urllib.request.urlopen(f"https://raw.githubusercontent.com/google/fonts/main/{lic}/{folder}/{lic_file}", timeout=60) as r:
+                        lic_dest.write_bytes(r.read())
                 faces.append(f'@font-face{{font-family:"{family}";font-style:normal;font-weight:{w};'
                              f'font-display:swap;src:url("fonts/{out_name}") format("truetype")}}')
                 say(f"フォント同梱: {family} {w}（{kb} KB）")

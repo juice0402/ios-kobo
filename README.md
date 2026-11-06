@@ -29,7 +29,7 @@ main に push すると、全部のゲームで check が動く。
 
 ## ゲームを足す
 
-1. `apps/<名前>/` に app.json・icon.png・store/・pages.json を置く（hiragana-balance をまねる）
+1. `apps/<名前>/` に app.json・icon.png・store/・pages.json・ART.md（絵と音の一覧。プロジェクトの claude/game-art-rule.md の A・B・C）を置く（hiragana-balance をまねる）。B の絵はアプリに入れない
 2. `python3 scripts/pages.py` で docs/ を作りなおしてコミット
 3. Actions で check → スクショを見て OK なら testflight
 

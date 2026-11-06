@@ -7,4 +7,5 @@
 - スクショは Linux の headless Chrome で撮る（scripts/shots.py render。画面の大きさ・倍率・iPad の拡大はアプリと同じ計算）。Actions の Mac のシミュレーターは GPU がなくキャンバスのゲームで止まるので、起動の確認（scripts/smoke.sh）だけにする
 - 署名は App Store Connect API の Admin の鍵だけ（証明書・プロファイルは持たない）。scripts/upload.sh
 - ストアの文は site-principles.md の「文章」の決まりを守る。長さは prepare.py が点検する
+- 絵はプロジェクトの claude/game-art-rule.md（A・C だけアプリに入れる）。ゲームごとに apps/<ゲーム>/ART.md に絵と音の出どころを書く
 - App Store Connect の手作業（初回だけ）：アプリの作成・価格（無料）・App のプライバシー（データの収集なし）・年齢区分・審査の連絡先・TestFlight のテスター
