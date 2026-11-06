@@ -150,15 +150,6 @@ jobs:
         if: env.MODE == 'check'
         run: bash scripts/smoke.sh "$APP"
 
-      - name: 起動の画面を保存
-        if: always() && env.MODE == 'check'
-        uses: actions/upload-artifact@v5
-        with:
-          name: smoke-${{ matrix.app }}
-          path: build/${{ matrix.app }}/smoke
-          if-no-files-found: ignore
-          retention-days: 14
-
       - name: スクショを受け取る
         if: env.MODE == 'store' || env.MODE == 'review'
         uses: actions/download-artifact@v5

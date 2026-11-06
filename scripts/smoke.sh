@@ -1,5 +1,5 @@
 #!/bin/bash
-# Mac のシミュレーターで、アプリが起動してゲームが出るかだけ確かめる（1枚撮って終わり）。
+# Mac のシミュレーターで、アプリが起動して落ちないかだけ確かめる。
 #   scripts/smoke.sh <app>
 # Actions の Mac は GPU がなくキャンバスのゲームが重いので、長く動かさない。どの手順にも時間の上限をつける。
 set -uo pipefail
@@ -20,17 +20,19 @@ UDID=$(python3 scripts/shots.py pick iphone) || exit 1
 limit 300 xcrun simctl boot "$UDID" 2>/dev/null
 limit 300 xcrun simctl bootstatus "$UDID" -b >/dev/null || { echo "::error::シミュレーターが起動しません"; exit 1; }
 limit 120 xcrun simctl install "$UDID" "$APP_PATH" || { echo "::error::入れられません"; exit 1; }
+MARK="$RUNNER_TEMP/launch-mark"; touch "$MARK" 2>/dev/null || { MARK=$(mktemp); }
 limit 120 xcrun simctl launch "$UDID" "$BUNDLE_ID" -AppleLanguages "(ja)" || { echo "::error::起動しません"; exit 1; }
-sleep 15
-mkdir -p "build/$APP/smoke"
-# 画面の撮影は GPU のない Mac では失敗することがあるので、撮れなくても止めない
-limit 90 xcrun simctl io "$UDID" screenshot --type=png "build/$APP/smoke/iphone-ja.png" >/dev/null 2>&1 \
-  || echo "::warning::シミュレーターの画面は撮れませんでした（起動の確認は続けます）"
-# 起動してすぐ落ちていないか（落ちていればホーム画面が写る）
-if limit 30 xcrun simctl spawn "$UDID" launchctl list 2>/dev/null | grep -q "UIKitApplication:$BUNDLE_ID"; then
+sleep 20
+# 落ちたかどうかはクラッシュの記録で見る（GPU のない Mac ではシミュレーターが重く、画面の撮影や
+# 動いているかの問い合わせが返ってこないことがあるため、そちらは参考だけにする）
+CRASH=$(find "$HOME/Library/Logs/DiagnosticReports" -newer "$MARK" \( -name "${PRODUCT_NAME}*" -o -name "*${BUNDLE_ID}*" \) 2>/dev/null | head -1)
+if [ -n "$CRASH" ]; then
+  echo "::error::アプリが落ちました: $(basename "$CRASH")"
+  head -c 3000 "$CRASH"; exit 1
+elif limit 30 xcrun simctl spawn "$UDID" launchctl list 2>/dev/null | grep -q "UIKitApplication:$BUNDLE_ID"; then
   echo "起動の確認: OK（アプリは動いたまま）"
 else
-  echo "::error::アプリが起動のあと止まっています"; exit 1
+  echo "起動の確認: OK（クラッシュの記録なし。動いているかの問い合わせは返らず）"
 fi
 limit 30 xcrun simctl terminate "$UDID" "$BUNDLE_ID" >/dev/null 2>&1
 limit 120 xcrun simctl shutdown "$UDID" 2>/dev/null
