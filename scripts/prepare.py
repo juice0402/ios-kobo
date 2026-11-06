@@ -289,7 +289,8 @@ def make_project(app, cfg, proj, build_number):
         "GameLangGlobals": cfg.get("langGlobals", []),
         "GameSafeArea": cfg.get("safeArea", "respect"),
     }
-    if cfg.get("fitSize"):
+    # zoom "game"：ゲームが自分で大きさを合わせる（APP_PLATFORM='ios' を見る）。アプリはページを拡大しない
+    if cfg.get("fitSize") and cfg.get("zoom", "page") != "game":
         info["GameFitSize"] = cfg["fitSize"]
 
     spec = {

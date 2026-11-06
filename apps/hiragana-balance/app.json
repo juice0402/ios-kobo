@@ -7,7 +7,7 @@
   },
   "game": {
     "repo": "juice0402/hiragana-balance",
-    "ref": "696416a3c1a4302bf626cbb1417cdac9fff50daa",
+    "ref": "6c516226a87374ca6e1734276373f8cce239f8f8",
     "file": "index.html"
   },
   "languages": [
@@ -36,6 +36,7 @@
   ],
   "iphoneOrientation": "portrait",
   "safeArea": "ignore",
+  "zoom": "game",
   "fitSize": [
     424,
     644
@@ -73,7 +74,7 @@
       },
       {
         "name": "3-over",
-        "wait": 16,
+        "wait": 28,
         "js": "(function(){var s=5;Math.random=function(){s=s*16807%2147483647;return(s-1)/2147483646};var c=document.getElementById('gameCanvas'),n=0;function sc(){return parseInt(document.getElementById('scoreVal').textContent,10)||0}function over(){return !!document.getElementById('retryBtn').offsetParent}function drop(dx){var r=c.getBoundingClientRect(),x=r.left+r.width/2+dx*r.width/400,y=r.bottom-4,o={clientX:x,clientY:y,bubbles:true,pointerId:1,isPrimary:true};c.dispatchEvent(new PointerEvent('pointerdown',o));window.dispatchEvent(new PointerEvent('pointerup',o))}function t(){if(over())return;if(sc()>=n){drop(n<6?(n%2?6:-6):130);n++}setTimeout(t,300)}document.getElementById('startBtn').click();setTimeout(t,1200)})();"
       }
     ]

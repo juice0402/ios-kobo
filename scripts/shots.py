@@ -43,7 +43,7 @@ async def render(app):
     if not game.exists():
         sys.exit("先に scripts/prepare.py を動かしてください")
     out = ROOT / "build" / app / "fastlane" / "screenshots"
-    fit = cfg.get("fitSize")
+    fit = cfg.get("fitSize") if cfg.get("zoom", "page") != "game" else None  # "game" はゲームが自分で拡大する
     globals_ = [g for g in cfg.get("langGlobals", []) if re.fullmatch(r"[A-Za-z_$][\w$]*", g)]
 
     async with async_playwright() as p:

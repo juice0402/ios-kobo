@@ -75,6 +75,8 @@ final class GameHostView: UIView {
         config.mediaTypesRequiringUserActionForPlayback = []
         config.dataDetectorTypes = []
         config.suppressesIncrementalRendering = true
+        // iPad でもスマホと同じ組み方にする（パソコン向けの表示だと、画面の幅がずれてタップの位置もずれる）
+        config.defaultWebpagePreferences.preferredContentMode = .mobile
         webView = WKWebView(frame: .zero, configuration: config)
         super.init(frame: .zero)
 
