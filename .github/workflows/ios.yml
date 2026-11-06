@@ -1,6 +1,6 @@
 name: iOS アプリ
 
-# check      … Mac で組み立てて、シミュレーターでスクショを撮る（Apple の鍵はいらない）
+# check      … スクショを撮り（Linux）、Mac で組み立ててシミュレーターで起動を確かめる（Apple の鍵はいらない）
 # testflight … 署名して TestFlight に送る
 # store      … ストアの文とスクショを App Store Connect に送る（審査には出さない）
 # review     … ストアの文とスクショを送って、審査に出す
@@ -70,10 +70,42 @@ jobs:
           print(apps, mode, ref)
           EOF
 
-  build:
+  shots:
     needs: plan
+    if: needs.plan.outputs.mode != 'testflight'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        app: ${{ fromJSON(needs.plan.outputs.apps) }}
+    env:
+      APP: ${{ matrix.app }}
+      GAME_REF: ${{ needs.plan.outputs.ref }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: 道具を入れる
+        run: |
+          pip install -q fonttools pillow playwright
+          python -m playwright install --with-deps chromium >/dev/null
+      - name: ゲームを取りこむ
+        run: python scripts/prepare.py "$APP" --ref "$GAME_REF"
+      - name: スクショを撮る（iPhone 6.9 インチ・iPad 13 インチ）
+        run: python scripts/shots.py render "$APP"
+      - uses: actions/upload-artifact@v5
+        with:
+          name: screenshots-${{ matrix.app }}
+          path: build/${{ matrix.app }}/fastlane/screenshots
+          retention-days: 30
+
+  build:
+    needs: [plan, shots]
+    if: always() && needs.plan.result == 'success' && needs.shots.result != 'failure' && needs.shots.result != 'cancelled'
     runs-on: macos-26
-    timeout-minutes: 75
+    timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
@@ -114,18 +146,25 @@ jobs:
           python3 scripts/prepare.py "$APP" --ref "$GAME_REF" --build-number "$BUILD_NO"
           cd "build/$APP/project" && xcodegen generate --spec project.json --quiet
 
-      - name: シミュレーターで組み立ててスクショを撮る
-        if: env.MODE != 'testflight'
-        run: bash scripts/screens.sh "$APP"
+      - name: シミュレーターで起動を確かめる
+        if: env.MODE == 'check'
+        run: bash scripts/smoke.sh "$APP"
 
-      - name: スクショを保存
-        if: always() && env.MODE != 'testflight'
+      - name: 起動の画面を保存
+        if: always() && env.MODE == 'check'
         uses: actions/upload-artifact@v5
+        with:
+          name: smoke-${{ matrix.app }}
+          path: build/${{ matrix.app }}/smoke
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: スクショを受け取る
+        if: env.MODE == 'store' || env.MODE == 'review'
+        uses: actions/download-artifact@v5
         with:
           name: screenshots-${{ matrix.app }}
           path: build/${{ matrix.app }}/fastlane/screenshots
-          if-no-files-found: warn
-          retention-days: 30
 
       - name: バンドル ID とアプリの確認
         id: asc
