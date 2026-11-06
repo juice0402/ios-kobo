@@ -11,6 +11,10 @@ limit 1200 xcodebuild build -project "build/$APP/project/App.xcodeproj" -scheme 
   -destination 'generic/platform=iOS Simulator' -derivedDataPath build/dd CODE_SIGNING_ALLOWED=NO -quiet || exit 1
 APP_PATH=$(ls -d build/dd/Build/Products/Debug-iphonesimulator/*.app | head -1)
 echo "組み立て: ${APP_PATH} （$(du -sh "${APP_PATH}" | cut -f1)）"
+for f in Game/index.html Info.plist PrivacyInfo.xcprivacy; do
+  [ -e "${APP_PATH}/$f" ] || { echo "::error::アプリの中に $f がありません"; exit 1; }
+done
+echo "中身の確認: OK（$(ls "${APP_PATH}/Game" | tr '\n' ' ')）"
 
 UDID=$(python3 scripts/shots.py pick iphone) || exit 1
 limit 300 xcrun simctl boot "$UDID" 2>/dev/null
@@ -19,8 +23,9 @@ limit 120 xcrun simctl install "$UDID" "$APP_PATH" || { echo "::error::入れら
 limit 120 xcrun simctl launch "$UDID" "$BUNDLE_ID" -AppleLanguages "(ja)" || { echo "::error::起動しません"; exit 1; }
 sleep 15
 mkdir -p "build/$APP/smoke"
-limit 60 xcrun simctl io "$UDID" screenshot --type=png "build/$APP/smoke/iphone-ja.png" >/dev/null 2>&1 \
-  || { echo "::error::画面を撮れません"; exit 1; }
+# 画面の撮影は GPU のない Mac では失敗することがあるので、撮れなくても止めない
+limit 90 xcrun simctl io "$UDID" screenshot --type=png "build/$APP/smoke/iphone-ja.png" >/dev/null 2>&1 \
+  || echo "::warning::シミュレーターの画面は撮れませんでした（起動の確認は続けます）"
 # 起動してすぐ落ちていないか（落ちていればホーム画面が写る）
 if limit 30 xcrun simctl spawn "$UDID" launchctl list 2>/dev/null | grep -q "UIKitApplication:$BUNDLE_ID"; then
   echo "起動の確認: OK（アプリは動いたまま）"
