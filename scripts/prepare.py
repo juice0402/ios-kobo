@@ -325,6 +325,8 @@ def make_project(app, cfg, proj, build_number):
 def make_metadata(app, cfg, out):
     meta = out / "fastlane" / "metadata"
     store = ROOT / "apps" / app / "store"
+    pages_file = ROOT / "apps" / app / "pages.json"
+    pages = json.loads(pages_file.read_text(encoding="utf-8")) if pages_file.exists() else {}
     for loc_dir in sorted(p for p in store.iterdir() if p.is_dir()):
         dest = meta / loc_dir.name
         dest.mkdir(parents=True, exist_ok=True)
@@ -339,6 +341,9 @@ def make_metadata(app, cfg, out):
         page_lang = "ja" if loc_dir.name.startswith("ja") else "en"
         (dest / "privacy_url.txt").write_text(f"{PAGES_BASE}/{app}/privacy.html#{page_lang}\n", encoding="utf-8")
         (dest / "support_url.txt").write_text(f"{PAGES_BASE}/{app}/#{page_lang}\n", encoding="utf-8")
+        # マーケティング URL＝工房のページ。AdMob はこのドメインの直下の app-ads.txt を見る（asobi-talk.com/app-ads.txt）
+        if pages.get("workshopUrl"):
+            (dest / "marketing_url.txt").write_text(pages["workshopUrl"] + "\n", encoding="utf-8")
     s = cfg.get("store", {})
     (meta / "copyright.txt").write_text(s.get("copyright", "") + "\n", encoding="utf-8")
     (meta / "primary_category.txt").write_text(s.get("primaryCategory", "GAMES") + "\n", encoding="utf-8")
