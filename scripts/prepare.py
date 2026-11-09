@@ -239,6 +239,14 @@ def localized_name(cfg, lang):
     return names.get(lang) or names.get(lang.split("-")[0]) or names["en"]
 
 
+def leaderboard_id(cfg):
+    """app.json の gameCenter.leaderboard（なければ空）。App Store Connect のリーダーボードの ID と同じ"""
+    lb = (cfg.get("gameCenter") or {}).get("leaderboard", "")
+    if lb and not re.fullmatch(r"[A-Za-z0-9_.]{1,100}", lb):
+        fail("gameCenter.leaderboard は英数字・_・. で 100 文字まで")
+    return lb
+
+
 def make_project(app, cfg, proj, build_number):
     shutil.copytree(ROOT / "shell" / "Sources", proj / "Sources")
     shutil.copy2(ROOT / "shell" / "PrivacyInfo.xcprivacy", proj / "PrivacyInfo.xcprivacy")
@@ -310,6 +318,10 @@ def make_project(app, cfg, proj, build_number):
     # zoom "game"：ゲームが自分で大きさを合わせる（APP_PLATFORM='ios' を見る）。アプリはページを拡大しない
     if cfg.get("fitSize") and cfg.get("zoom", "page") != "game":
         info["GameFitSize"] = cfg["fitSize"]
+    # ゲームから呼べる関数（shell/Sources/GameBridge.swift）：Game Center のリーダーボードと、共有の文に足すストアの URL
+    leaderboard = leaderboard_id(cfg)
+    info["GameLeaderboardID"] = leaderboard
+    info["GameStoreURL"] = cfg.get("storeUrl", "")
 
     spec = {
         "name": "App",
@@ -326,6 +338,8 @@ def make_project(app, cfg, proj, build_number):
                             {"path": "Assets.xcassets"},
                             {"path": "PrivacyInfo.xcprivacy", "buildPhase": "resources"}],
                 "info": {"path": "Info.plist", "properties": info},
+                **({"entitlements": {"path": "App.entitlements",
+                                     "properties": {"com.apple.developer.game-center": True}}} if leaderboard else {}),
                 "settings": {"base": {
                     "PRODUCT_BUNDLE_IDENTIFIER": bundle_id, "PRODUCT_NAME": product,
                     "TARGETED_DEVICE_FAMILY": family, "ASSETCATALOG_COMPILER_APPICON_NAME": "AppIcon",
@@ -405,7 +419,7 @@ def main():
     make_metadata(a.app, cfg, out)
 
     env = {"BUNDLE_ID": cfg["bundleId"], "APP_VERSION": cfg["version"], "PRODUCT_NAME": product,
-           "GAME_SHA": sha, "APP_NAME_EN": cfg["name"]["en"]}
+           "GAME_SHA": sha, "APP_NAME_EN": cfg["name"]["en"], "LEADERBOARD_ID": leaderboard_id(cfg)}
     (out / "app.env").write_text("".join(f"{k}={shlex.quote(v)}\n" for k, v in env.items()), encoding="utf-8")
     if os.environ.get("GITHUB_ENV"):
         with open(os.environ["GITHUB_ENV"], "a", encoding="utf-8") as f:

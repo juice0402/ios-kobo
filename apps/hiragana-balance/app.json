@@ -39,6 +39,9 @@
   "safeArea": "ignore",
   "zoom": "game",
   "skin": "kobo",
+  "gameCenter": {
+    "leaderboard": "hiragana_balance_best"
+  },
   "fitSize": [
     424,
     644

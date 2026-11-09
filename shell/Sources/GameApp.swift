@@ -44,6 +44,17 @@ enum GameSettings {
 
     static var ignoresSafeArea: Bool { (info["GameSafeArea"] as? String) == "ignore" }
 
+    /// Game Center のリーダーボードの ID（app.json の gameCenter.leaderboard）。ないアプリは Game Center を使わない
+    static var leaderboardID: String? { nonEmpty(info["GameLeaderboardID"]) }
+
+    /// 共有の文のあとに足すストアの URL（app.json の storeUrl。公開のあとに入れる）
+    static var storeURL: String? { nonEmpty(info["GameStoreURL"]) }
+
+    private static func nonEmpty(_ v: Any?) -> String? {
+        guard let s = (v as? String)?.trimmingCharacters(in: .whitespaces), !s.isEmpty else { return nil }
+        return s
+    }
+
     /// ゲームが気持ちよく見える大きさ（CSS の px）。iPad など大きい画面では、これが画面いっぱいになるよう拡大する
     static var fitSize: CGSize? {
         guard let parts = info["GameFitSize"] as? [NSNumber], parts.count == 2 else { return nil }

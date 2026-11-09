@@ -3,6 +3,7 @@
 - 中身と使い方は README.md。ゲームの HTML はここに置かず、ビルドのたびに app.json の game.repo / game.ref から取る
 - shell/ は全部のゲームで共通。ゲームごとの違いは app.json → Info.plist の Game〜 の値で渡す（GameEntry・GameLangGlobals・GameSafeArea・GameFitSize）
 - アプリがゲームに渡すもの：`window.APP_LANGS`（端末の言語）・`APP_PLATFORM='ios'`・`APP_ZOOM`（iPad で拡大した倍率）。langGlobals の名前にも APP_LANGS を入れる
+- ゲームから呼べる関数（GameBridge.swift・README の表）：`APP_HAPTIC(kind)`・`APP_SHARE(text)`・Game Center のアプリだけ `APP_GAMECENTER`・`APP_SCORE(n)`・`APP_RANKING()`。app.json の `gameCenter.leaderboard` → GameLeaderboardID と entitlements、`storeUrl` → GameStoreURL。署名なしの組み立てには entitlements が入らないので upload.sh が ad-hoc で入れる
 - スクショの台本（app.json の screenshots.scenes の js）はページの中で動く。ゲームの中の変数は見えない前提で、ボタンの click とキャンバスへの PointerEvent で動かす。直したら headless の Chrome で先に試す
 - スクショは Linux の headless Chrome で撮る（scripts/shots.py render。画面の大きさ・倍率・iPad の拡大はアプリと同じ計算）。Actions の Mac のシミュレーターは GPU がなくキャンバスのゲームで止まるので、起動の確認（scripts/smoke.sh）だけにする
 - 署名は App Store Connect API の Admin の鍵だけ（証明書・プロファイルは持たない）。scripts/upload.sh
