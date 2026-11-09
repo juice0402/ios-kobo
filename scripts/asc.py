@@ -89,7 +89,7 @@ def setup(game_center=False):
             # うまくいかなくても TestFlight には送る（警告だけ。App Store Connect の画面でも作れる）
             try:
                 setup_game_center(apps[0]["id"])
-            except (ApiError, urllib.error.URLError, KeyError, TypeError) as e:
+            except (ApiError, OSError, ValueError, KeyError, TypeError) as e:  # 通信・時間切れ・壊れた返事も警告だけ
                 print(f"::warning::Game Center の用意ができませんでした（App Store Connect の画面で作ってください）: {e}")
     else:
         print(f"::warning::App Store Connect にまだアプリがありません。「新規 App」で {bundle} をえらんで作ってください")
