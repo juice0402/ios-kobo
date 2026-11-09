@@ -44,6 +44,8 @@ Game Center の3つは、app.json に `"gameCenter": {"leaderboard": "<ID>"}` �
 ## ゲームを足す
 
 1. `apps/<名前>/` に app.json・icon.png・store/・pages.json・ART.md（絵と音の一覧。プロジェクトの claude/game-art-rule.md の A・B・C）を置く（hiragana-balance をまねる）。B の絵はアプリに入れない
+   - pages.json の `browserVersion: false`＝ブラウザ版がまだ工房にない（サポートのページは「ほかのゲームは工房で」の文になる）
+   - スクショの場面をボタンの click で作りにくいゲームは、ゲームの側に「自動のためし（navigator.webdriver）のときだけ動く」場面を用意して、台本で呼んでもよい（パチおばの `location.hash='shot=play:7'`。人がさわるアプリでは動かない）
 2. `python3 scripts/pages.py` で docs/ を作りなおしてコミット
 3. Actions で check → スクショを見て OK なら testflight
 
