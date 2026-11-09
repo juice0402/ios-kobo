@@ -176,9 +176,13 @@ jobs:
         run: |
           python3 scripts/asc.py key-json "$RUNNER_TEMP/asc_key.json"
           SUBMIT=false; [ "$MODE" = review ] && SUBMIT=true
+          # コンテンツの権利（app.json の store.thirdPartyContent。asc.py setup でも送っている）
+          CR=""
+          [ "${CONTENT_RIGHTS:-}" = USES_THIRD_PARTY_CONTENT ] && CR=', "content_rights_contains_third_party_content": true, "content_rights_has_rights": true'
+          [ "${CONTENT_RIGHTS:-}" = DOES_NOT_USE_THIRD_PARTY_CONTENT ] && CR=', "content_rights_contains_third_party_content": false'
           fastlane deliver --api_key_path "$RUNNER_TEMP/asc_key.json" --platform ios \
             --app_identifier "$BUNDLE_ID" --app_version "$APP_VERSION" \
             --metadata_path "build/$APP/fastlane/metadata" --screenshots_path "build/$APP/fastlane/screenshots" \
             --skip_binary_upload true --overwrite_screenshots true --force true \
             --run_precheck_before_submit false --automatic_release false \
-            --submit_for_review "$SUBMIT" --submission_information '{"add_id_info_uses_idfa": false}'
+            --submit_for_review "$SUBMIT" --submission_information "{\"add_id_info_uses_idfa\": false$CR}"

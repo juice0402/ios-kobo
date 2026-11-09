@@ -247,6 +247,16 @@ def leaderboard_id(cfg):
     return lb
 
 
+def content_rights(cfg):
+    """app.json の store.thirdPartyContent → App Store Connect の「コンテンツの権利」（なければ空＝送らない）"""
+    v = (cfg.get("store") or {}).get("thirdPartyContent")
+    if v is None:
+        return ""
+    if not isinstance(v, bool):
+        fail("store.thirdPartyContent は true か false")
+    return "USES_THIRD_PARTY_CONTENT" if v else "DOES_NOT_USE_THIRD_PARTY_CONTENT"
+
+
 def make_project(app, cfg, proj, build_number):
     shutil.copytree(ROOT / "shell" / "Sources", proj / "Sources")
     shutil.copy2(ROOT / "shell" / "PrivacyInfo.xcprivacy", proj / "PrivacyInfo.xcprivacy")
@@ -419,7 +429,8 @@ def main():
     make_metadata(a.app, cfg, out)
 
     env = {"BUNDLE_ID": cfg["bundleId"], "APP_VERSION": cfg["version"], "PRODUCT_NAME": product,
-           "GAME_SHA": sha, "APP_NAME_EN": cfg["name"]["en"], "LEADERBOARD_ID": leaderboard_id(cfg)}
+           "GAME_SHA": sha, "APP_NAME_EN": cfg["name"]["en"], "LEADERBOARD_ID": leaderboard_id(cfg),
+           "CONTENT_RIGHTS": content_rights(cfg)}
     (out / "app.env").write_text("".join(f"{k}={shlex.quote(v)}\n" for k, v in env.items()), encoding="utf-8")
     if os.environ.get("GITHUB_ENV"):
         with open(os.environ["GITHUB_ENV"], "a", encoding="utf-8") as f:

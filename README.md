@@ -57,6 +57,8 @@ gh workflow run ios.yml -R juice0402/ios-kobo -f app=<名前> -f mode=testflight
 
 App Store に出す版は、app.json の `game.ref` をその版に上げてコミットしておく。
 
+審査の「コンテンツの権利」は app.json の `store.thirdPartyContent`（true＝ほかの人が作った素材を使っていて、使う権利がある。フォントや Canva の絵も入る）。testflight・store・review のたびに `asc.py setup` がアプリに送り、review のときは deliver にも渡す。
+
 ## Secrets（Apple の鍵）
 
 `ASC_KEY_ID`・`ASC_ISSUER_ID`・`ASC_KEY_P8`（.p8 の中身）・`APPLE_TEAM_ID`。
