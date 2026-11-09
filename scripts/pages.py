@@ -84,14 +84,17 @@ def support(app, cfg, pg):
         if lang == "ja":
             contact = ("<p>不具合やご意見は、お問い合わせフォームから送ってください。アプリの名前と、使っている機種・iOS のバージョンを書いてもらえると、早く直せます。</p>"
                        f'<p><a href="{esc(FORM)}">お問い合わせフォーム</a></p>')
-            maker = (f'<p>作った人：{esc(MAKER["ja"])}。ブラウザ版は<a href="{esc(pg["workshopUrl"])}">ゲーム工房</a>で遊べます。</p>'
+            web = "ブラウザ版は" if pg.get("browserVersion", True) else "ほかのゲームは"   # ブラウザ版がまだ工房にないアプリは false
+            maker = (f'<p>作った人：{esc(MAKER["ja"])}。{web}<a href="{esc(pg["workshopUrl"])}">ゲーム工房</a>で遊べます。</p>'
                      '<p><a href="privacy.html#ja">プライバシーポリシー</a></p>')
             h = ("このアプリについて", "お問い合わせ", "よくある質問")
         else:
             contact = ("<p>To report a problem or send feedback, please use the contact form. The form is in Japanese, but you can write in English. "
                        "Telling us the app name, your device and iOS version helps us fix things faster.</p>"
                        f'<p><a href="{esc(FORM)}">Contact form</a></p>')
-            maker = (f'<p>Made by {esc(MAKER["en"])}. You can also play it in a browser at the <a href="{esc(pg["workshopUrl"])}">Game Workshop</a>.</p>'
+            web = ("You can also play it in a browser at the" if pg.get("browserVersion", True)
+                   else "You can find more games at the")
+            maker = (f'<p>Made by {esc(MAKER["en"])}. {web} <a href="{esc(pg["workshopUrl"])}">Game Workshop</a>.</p>'
                      '<p><a href="privacy.html#en">Privacy Policy</a></p>')
             h = ("About this app", "Contact", "FAQ")
         parts.append(

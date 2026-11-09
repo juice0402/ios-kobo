@@ -122,6 +122,31 @@ def download_font(family, weight, cache):
     return None, False
 
 
+OFL_BODY_URL = "https://raw.githubusercontent.com/google/fonts/main/ofl/bungee/OFL.txt"
+
+
+def license_text(lic, folder, lic_file):
+    """フォントのライセンスの文。google/fonts のフォルダに文のファイルがないフォント（M PLUS Rounded 1c など）は、
+    METADATA.pb の著作権の行と、OFL 1.1 の本文（ほかの OFL のフォントの OFL.txt から）を組み合わせて作る"""
+    base = f"https://raw.githubusercontent.com/google/fonts/main/{lic}/{folder}"
+    try:
+        with urllib.request.urlopen(f"{base}/{lic_file}", timeout=60) as r:
+            return r.read().decode("utf-8", errors="replace")
+    except urllib.error.HTTPError as e:
+        if e.code != 404 or lic != "ofl":
+            raise
+    with urllib.request.urlopen(f"{base}/METADATA.pb", timeout=60) as r:
+        meta = r.read().decode("utf-8", errors="replace")
+    rights = list(dict.fromkeys(re.findall(r'copyright:\s*"([^"]+)"', meta)))
+    with urllib.request.urlopen(OFL_BODY_URL, timeout=60) as r:
+        body = r.read().decode("utf-8", errors="replace")
+    i = body.find("This Font Software is licensed under the SIL Open Font License")
+    if i < 0 or not rights:
+        fail(f"{folder} のライセンスの文を作れません")
+    say(f"ライセンスの文: {folder} は METADATA.pb の著作権＋OFL 1.1 の本文で作った")
+    return "\n".join(rights) + "\n\n" + body[i:]
+
+
 def localize_fonts(html, game_dir):
     links = GF_LINK.findall(html)
     if not links:
@@ -163,8 +188,7 @@ def localize_fonts(html, game_dir):
                 lic_dest = game_dir / "fonts" / f"{family.replace(' ', '')}-{lic_file}"
                 if not lic_dest.exists():
                     folder = family.lower().replace(" ", "")
-                    with urllib.request.urlopen(f"https://raw.githubusercontent.com/google/fonts/main/{lic}/{folder}/{lic_file}", timeout=60) as r:
-                        lic_dest.write_bytes(r.read())
+                    lic_dest.write_text(license_text(lic, folder, lic_file), encoding="utf-8")
                 faces.append(f'@font-face{{font-family:"{family}";font-style:normal;font-weight:{w};'
                              f'font-display:swap;src:url("fonts/{out_name}") format("truetype")}}')
                 say(f"フォント同梱: {family} {w}（{kb} KB）")

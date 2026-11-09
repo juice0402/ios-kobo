@@ -1,0 +1,47 @@
+{
+  "privacyDate": "2026-11-09",
+  "about": {
+    "ja": "パチンコの台の杭にタワーを建てて、上から来るいたずら好きのおばけを止めるタワーディフェンスです。iPhone と iPad で遊べます。",
+    "en": "A tower defense game on a pachinko board: build towers on the pegs and stop the mischievous ghosts coming down from the top. Works on iPhone and iPad. The game is in Japanese."
+  },
+  "workshopUrl": "https://asobi-talk.com/kobo/",
+  "browserVersion": false,
+  "faq": {
+    "ja": [
+      [
+        "音が出ません",
+        "iPhone の消音スイッチがサイレントになっていると鳴りません。台の右上のスピーカーのボタンも確かめてください。"
+      ],
+      [
+        "セーブはどこに残りますか",
+        "端末の中だけです。台をクリアしたときや、お店で買ったときに自動でセーブします。アプリを削除するとセーブも消えます。"
+      ],
+      [
+        "台のとちゅうでやめたい",
+        "台の左下の「もどる」から台えらびにもどれます。コインは台に入る前の数にもどります。"
+      ],
+      [
+        "ネットにつないでいないと遊べませんか",
+        "つながなくても遊べます。ゲームはすべてアプリの中に入っています。"
+      ]
+    ],
+    "en": [
+      [
+        "There is no sound",
+        "If your iPhone is set to Silent, the game stays quiet. Please also check the speaker button at the top right of the board."
+      ],
+      [
+        "Where is my progress saved?",
+        "Only on your device. The game saves automatically when you clear a board or buy something. Deleting the app also deletes the save."
+      ],
+      [
+        "How do I leave a board?",
+        "Tap the back button at the lower left of the board. Your coins go back to what you had before entering the board."
+      ],
+      [
+        "Do I need an internet connection?",
+        "No. The whole game is inside the app."
+      ]
+    ]
+  }
+}
