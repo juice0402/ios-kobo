@@ -7,7 +7,7 @@
   },
   "game": {
     "repo": "juice0402/hiragana-balance",
-    "ref": "4f2fe8c8473c2574a7aa44b083be7104b3c666e0",
+    "ref": "30410104b3b1b9bbd83d4899a4f47e789b439b2e",
     "file": "index.html",
     "extra": ["skins/kobo"]
   },
@@ -54,7 +54,8 @@
       "GAMES_PUZZLE",
       "GAMES_CASUAL"
     ],
-    "copyright": "2026 Hanpen (asobi-talk.com)"
+    "copyright": "2026 Hanpen (asobi-talk.com)",
+    "thirdPartyContent": true
   },
   "privacy": {
     "stored": {

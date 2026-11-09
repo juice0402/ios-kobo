@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 """App Store Connect API の小さな道具（鍵は GitHub の Secrets から環境変数で受け取る）。
 
-  python3 scripts/asc.py setup      → バンドル ID を登録（なければ）し、アプリができているか調べる
+  python3 scripts/asc.py setup      → バンドル ID を登録（なければ）し、アプリができているか調べる。
+                                      CONTENT_RIGHTS があれば「コンテンツの権利」をその値にする
   python3 scripts/asc.py setup --game-center
                                     → そのうえで Game Center とリーダーボード（LEADERBOARD_ID）を用意する
   python3 scripts/asc.py key-json F → fastlane 用の鍵ファイルを F に書く
 
-環境変数: ASC_KEY_ID, ASC_ISSUER_ID, ASC_KEY_P8, BUNDLE_ID, APP_NAME_EN（--game-center のときは LEADERBOARD_ID も）
+環境変数: ASC_KEY_ID, ASC_ISSUER_ID, ASC_KEY_P8, BUNDLE_ID, APP_NAME_EN, CONTENT_RIGHTS（空でもよい。--game-center のときは LEADERBOARD_ID も）
 """
 import json
 import os
@@ -85,6 +86,7 @@ def setup(game_center=False):
     if apps:
         print(f"App Store Connect のアプリ: あり（{apps[0]['attributes']['name']}）")
         output("has_app", "true")
+        set_content_rights(apps[0])
         if game_center:
             # うまくいかなくても TestFlight には送る（警告だけ。App Store Connect の画面でも作れる）
             try:
@@ -94,6 +96,23 @@ def setup(game_center=False):
     else:
         print(f"::warning::App Store Connect にまだアプリがありません。「新規 App」で {bundle} をえらんで作ってください")
         output("has_app", "false")
+
+
+def set_content_rights(app):
+    """app.json の store.thirdPartyContent（prepare.py が CONTENT_RIGHTS にする）を、アプリの contentRightsDeclaration に。
+    同じならなにもしない。うまくいかなくても止めない（App Store Connect の画面の「App 情報」でも選べる）"""
+    want = os.environ.get("CONTENT_RIGHTS", "")
+    if not want:
+        return
+    if app["attributes"].get("contentRightsDeclaration") == want:
+        print(f"コンテンツの権利: {want}（そのまま）")
+        return
+    try:
+        call("PATCH", f"/apps/{app['id']}", {"data": {"type": "apps", "id": app["id"],
+                                                      "attributes": {"contentRightsDeclaration": want}}}, soft=True)
+        print(f"コンテンツの権利: {want} にしました")
+    except (ApiError, OSError, ValueError) as e:
+        print(f"::warning::コンテンツの権利を送れませんでした（App Store Connect の「App 情報」で選んでください）: {e}")
 
 
 # リーダーボードの決まり（全部のゲームで共通：整数・大きい順・最高記録を残す）
