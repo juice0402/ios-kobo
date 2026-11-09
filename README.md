@@ -25,7 +25,21 @@ Actions の「iOS アプリ」を手で動かすときの「すること」:
 | store | ストアの文とスクショを送る（審査には出さない） | いる |
 | review | ストアの文とスクショを送って審査に出す | いる |
 
-main に push すると、全部のゲームで check が動く。
+main に push したときと PR のときに、全部のゲームで check が動く。
+
+## ゲームから呼べる関数（shell/Sources/GameBridge.swift）
+
+アプリの中だけ window に入る。ゲームは「あるときだけ呼ぶ」書き方にする（ブラウザでは今までどおり）。
+
+| 関数 | 中身 |
+| --- | --- |
+| `APP_HAPTIC(kind)` | 振動。`light` `medium` `heavy` `success` `warning` `error` `select`（同じ kind は 50ms に1回まで） |
+| `APP_SHARE(text)` | 共有メニュー。app.json の `storeUrl` があれば、改行してあとに足す |
+| `APP_GAMECENTER` | Game Center にログインできたら `true`（そのとき window に `app-gamecenter` イベント） |
+| `APP_SCORE(n)` | 最高記録を送る（整数。ログインしていないときは何もしない） |
+| `APP_RANKING()` | ランキング（全員・全期間）を開く |
+
+Game Center の3つは、app.json に `"gameCenter": {"leaderboard": "<ID>"}` があるアプリだけ。testflight のときに `scripts/asc.py setup --game-center` が App Store Connect の Game Center とリーダーボード（Best Score・整数・大きい順・最高記録）を、なければ作る。審査に出す前に、バージョンの画面で Game Center をオンにしてリーダーボードを足す（手作業）。
 
 ## ゲームを足す
 

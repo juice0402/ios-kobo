@@ -41,7 +41,17 @@ export_upload() {
     -exportOptionsPlist "$OUT/ExportOptions.plist" "${AUTH[@]}"
 }
 
-if archive CODE_SIGNING_ALLOWED=NO && export_upload; then
+# Game Center などの entitlements（XcodeGen が作る App.entitlements）は、署名なしの組み立てには入らない。
+# 仮の署名（ad-hoc）で入れておくと、クラウドでの署名がそれを引き継ぐ
+embed_entitlements() {
+  local ent="$OUT/project/App.entitlements" app
+  [ -f "$ent" ] || return 0
+  app=$(ls -d "$OUT/App.xcarchive/Products/Applications/"*.app | head -1)
+  codesign --force --sign - --entitlements "$ent" "$app" || return 1
+  echo "entitlements: $(codesign -d --entitlements - --xml "$app" 2>/dev/null | grep -o 'com\.apple\.developer\.[a-z.-]*' | sort -u | tr '\n' ' ')"
+}
+
+if archive CODE_SIGNING_ALLOWED=NO && embed_entitlements && export_upload; then
   echo "送信できました（署名なしの組み立て → クラウドで署名）"
   exit 0
 fi

@@ -11,6 +11,13 @@ struct GameWebView: UIViewRepresentable {
     func updateUIView(_ uiView: GameHostView, context: Context) {}
 
     final class Coordinator: NSObject, WKNavigationDelegate, WKUIDelegate {
+        weak var bridge: GameBridge?
+
+        // 読み終えたら、ゲームから呼べる関数の側に知らせる（Game Center のログインなど）
+        func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+            bridge?.pageDidLoad()
+        }
+
         // ゲームの中のリンク（クレジットのライセンスなど）は Safari で開き、アプリの画面は替えない
         func webView(_ webView: WKWebView, decidePolicyFor action: WKNavigationAction,
                      decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
@@ -66,6 +73,7 @@ struct GameWebView: UIViewRepresentable {
 /// WKWebView を入れる箱。画面の大きさが決まってからゲームを読み込み、大きい画面では拡大する
 final class GameHostView: UIView {
     let webView: WKWebView
+    private let bridge = GameBridge()
     private var loaded = false
     private var zoom: CGFloat = 1
 
@@ -83,6 +91,8 @@ final class GameHostView: UIView {
         backgroundColor = .clear
         webView.navigationDelegate = coordinator
         webView.uiDelegate = coordinator
+        bridge.webView = webView
+        coordinator.bridge = bridge
         webView.isOpaque = false
         webView.backgroundColor = .clear
         webView.scrollView.backgroundColor = .clear
@@ -137,6 +147,9 @@ final class GameHostView: UIView {
         }
         // 消音スイッチに従う（iOS 16.4 から）
         start += "try{if(navigator.audioSession)navigator.audioSession.type='ambient'}catch(e){}"
+        // ゲームから呼べる関数（振動・Game Center・共有。GameBridge.swift）
+        ucc.add(bridge, name: "app")
+        start += GameBridge.startScript
         ucc.addUserScript(WKUserScript(source: start, injectionTime: .atDocumentStart, forMainFrameOnly: true))
 
         // 長押しのメニュー・文字の選択・タップの灰色を出さない（アプリらしい手ざわり）

@@ -26,6 +26,9 @@ on:
   push:
     branches: [main]
     paths: ["apps/**", "shell/**", "scripts/**", ".github/workflows/ios.yml"]
+  # PR でも check（スクショ・Mac での組み立てと起動。Apple の鍵はいらない）
+  pull_request:
+    paths: ["apps/**", "shell/**", "scripts/**", ".github/workflows/ios.yml"]
 
 permissions:
   contents: read
@@ -157,10 +160,12 @@ jobs:
           name: screenshots-${{ matrix.app }}
           path: build/${{ matrix.app }}/fastlane/screenshots
 
-      - name: バンドル ID とアプリの確認
+      - name: バンドル ID とアプリの確認（testflight で app.json に gameCenter があれば Game Center も用意）
         id: asc
         if: env.MODE != 'check'
-        run: python3 scripts/asc.py setup
+        run: |
+          GC=""; [ "$MODE" = testflight ] && [ -n "${LEADERBOARD_ID:-}" ] && GC="--game-center"
+          python3 scripts/asc.py setup $GC
 
       - name: TestFlight に送る
         if: env.MODE == 'testflight' && steps.asc.outputs.has_app == 'true'
