@@ -296,7 +296,9 @@ def encode(frames, size, out):
     subprocess.run(["ffmpeg", "-hide_banner", "-loglevel", "error", "-y",
                     "-framerate", str(FPS), "-i", str(frames / "f%05d.jpg"),
                     "-f", "lavfi", "-i", "anullsrc=channel_layout=stereo:sample_rate=48000",
-                    "-vf", f"scale={w}:{h}:flags=lanczos,setsar=1,format=yuv420p",
+                    # コマは JPEG（色の幅が full の yuvj420p）なので、ふつうの幅（tv）の yuv420p に直す。ffmpeg の版によっては直さないと yuvj420p のまま出る
+                    "-vf", f"scale={w}:{h}:flags=lanczos:in_range=full:out_range=tv,setsar=1,format=yuv420p",
+                    "-pix_fmt", "yuv420p", "-color_range", "tv",
                     "-c:v", "libx264", "-preset", "medium", "-profile:v", "high", "-level", "4.0",
                     "-crf", "18", "-maxrate", "12M", "-bufsize", "24M", "-r", str(FPS),
                     "-c:a", "aac", "-b:a", "256k", "-ar", "48000", "-ac", "2", "-shortest",

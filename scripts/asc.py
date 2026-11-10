@@ -182,7 +182,8 @@ def put_bytes(op, data):
 
 def upload_preview(set_id, path, frame_tc):
     import hashlib
-    data = open(path, "rb").read()
+    with open(path, "rb") as f:
+        data = f.read()
     made = call("POST", "/appPreviews", {"data": {"type": "appPreviews", "attributes": {
         "fileName": os.path.basename(path), "fileSize": len(data), "mimeType": "video/mp4", "previewFrameTimeCode": frame_tc},
         "relationships": {"appPreviewSet": {"data": {"type": "appPreviewSets", "id": set_id}}}}}, soft=True)["data"]
@@ -204,7 +205,8 @@ def previews(folder):
 
 
 def send_previews(folder):
-    info = json.load(open(os.path.join(folder, "preview.json"), encoding="utf-8"))
+    with open(os.path.join(folder, "preview.json"), encoding="utf-8") as f:
+        info = json.load(f)
     bundle = env("BUNDLE_ID")
     q = urllib.parse.urlencode({"filter[bundleId]": bundle})
     apps = [d for d in call("GET", f"/apps?{q}", soft=True).get("data", []) if d["attributes"]["bundleId"] == bundle]

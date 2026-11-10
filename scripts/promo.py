@@ -221,6 +221,7 @@ def video(app):
     dest = out_dir / f"{app}-promo.mp4"
     subprocess.run(["ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-framerate", str(FPS), "-i", str(frames / "f%04d.jpg"),
                     "-f", "lavfi", "-i", "anullsrc=channel_layout=stereo:sample_rate=48000",
+                    "-vf", "scale=in_range=full:out_range=tv,format=yuv420p", "-color_range", "tv",
                     "-c:v", "libx264", "-preset", "medium", "-crf", "18", "-pix_fmt", "yuv420p", "-r", str(FPS),
                     "-c:a", "aac", "-b:a", "128k", "-shortest", "-movflags", "+faststart", str(dest)], check=True)
     shutil.rmtree(frames, ignore_errors=True)
