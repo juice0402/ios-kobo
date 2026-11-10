@@ -3,7 +3,7 @@ name: iOS アプリ
 # check      … スクショを撮り（Linux）、Mac で組み立ててシミュレーターで起動を確かめる（Apple の鍵はいらない）
 # testflight … 署名して TestFlight に送る
 # store      … ストアの文とスクショを App Store Connect に送る（審査には出さない）
-# review     … ストアの文とスクショを送って、審査に出す
+# review     … 審査に出す（文とスクショは送らない。先に store で送っておく）
 on:
   workflow_dispatch:
     inputs:
@@ -176,6 +176,8 @@ jobs:
         run: |
           python3 scripts/asc.py key-json "$RUNNER_TEMP/asc_key.json"
           SUBMIT=false; [ "$MODE" = review ] && SUBMIT=true
+          # review は文とスクショを送らない（先に store で送る）。deliver は文を送るとき、審査の添付ファイル（画面収録など）を消すため（11/10 パチおばで動画が消えた）
+          SKIP=""; [ "$MODE" = review ] && SKIP="--skip_metadata true --skip_screenshots true"
           # コンテンツの権利（app.json の store.thirdPartyContent。asc.py setup でも送っている）
           CR=""
           [ "${CONTENT_RIGHTS:-}" = USES_THIRD_PARTY_CONTENT ] && CR=', "content_rights_contains_third_party_content": true, "content_rights_has_rights": true'
@@ -187,4 +189,4 @@ jobs:
             --metadata_path fastlane/metadata --screenshots_path fastlane/screenshots \
             --skip_binary_upload true --overwrite_screenshots true --force true \
             --run_precheck_before_submit false --automatic_release false \
-            --submit_for_review "$SUBMIT" --submission_information "{\"add_id_info_uses_idfa\": false$CR}"
+            --submit_for_review "$SUBMIT" $SKIP --submission_information "{\"add_id_info_uses_idfa\": false$CR}"
