@@ -6,6 +6,7 @@
   python3 scripts/asc.py setup --game-center
                                     → そのうえで Game Center とリーダーボード（LEADERBOARD_ID）を用意する
   python3 scripts/asc.py key-json F → fastlane 用の鍵ファイルを F に書く
+  python3 scripts/asc.py previews D → D（build/<app>/previews）のプレビュー動画を、直せるバージョンに送る（前のは入れかえ）
 
 環境変数: ASC_KEY_ID, ASC_ISSUER_ID, ASC_KEY_P8, BUNDLE_ID, APP_NAME_EN, CONTENT_RIGHTS（空でもよい。--game-center のときは LEADERBOARD_ID も）
 """
@@ -163,6 +164,93 @@ def setup_game_center(app_id):
     print("::notice::Game Center は、App Store Connect のバージョンの画面で「Game Center」をオンにし、リーダーボードを足してから審査に出す")
 
 
+# ---------------------------------------------------------------- App プレビュー（動画）
+# scripts/preview.py が作った build/<app>/previews/<言語>/<機種>.mp4 を、いま直せるバージョンの各言語へ送る。
+# fastlane deliver は App プレビューを送れないので、App Store Connect API（appPreviewSets・appPreviews）で送る。
+PREVIEW_TYPES = {"iphone": "IPHONE_67", "ipad": "IPAD_PRO_3GEN_129"}   # 6.9/6.7 インチ（886×1920。API の型は IPHONE_67 まで）・13 インチ（1200×1600）
+EDITABLE = {"PREPARE_FOR_SUBMISSION", "DEVELOPER_REJECTED", "REJECTED", "METADATA_REJECTED", "INVALID_BINARY"}
+
+
+def put_bytes(op, data):
+    """uploadOperations の1つ分（決まった URL・ヘッダーで、決まった範囲のバイトを送る）"""
+    chunk = data[op["offset"]:op["offset"] + op["length"]]
+    req = urllib.request.Request(op["url"], method=op.get("method", "PUT"), data=chunk,
+                                 headers={h["name"]: h["value"] for h in op.get("requestHeaders", [])})
+    with urllib.request.urlopen(req, timeout=300) as r:
+        r.read()
+
+
+def upload_preview(set_id, path, frame_tc):
+    import hashlib
+    with open(path, "rb") as f:
+        data = f.read()
+    made = call("POST", "/appPreviews", {"data": {"type": "appPreviews", "attributes": {
+        "fileName": os.path.basename(path), "fileSize": len(data), "mimeType": "video/mp4", "previewFrameTimeCode": frame_tc},
+        "relationships": {"appPreviewSet": {"data": {"type": "appPreviewSets", "id": set_id}}}}}, soft=True)["data"]
+    for op in made["attributes"].get("uploadOperations") or []:
+        put_bytes(op, data)
+    call("PATCH", f"/appPreviews/{made['id']}", {"data": {"type": "appPreviews", "id": made["id"], "attributes": {
+        "uploaded": True, "sourceFileChecksum": hashlib.md5(data).hexdigest(), "previewFrameTimeCode": frame_tc}}}, soft=True)
+    return made["id"]
+
+
+def previews(folder):
+    """folder（build/<app>/previews）の動画を、いま直せるバージョンの同じ言語・同じ機種の枠に送る（前の動画は入れかえる）。
+    うまくいかなくても止めない（警告。文とスクショはもう送ってあるので、ジョブを赤くしない。App Store Connect の画面でも入れられる）"""
+    try:
+        return send_previews(folder)
+    except (SystemExit, Exception) as e:  # noqa: BLE001  鍵・通信・API・preview.json のどれで止まっても警告だけ
+        print(f"::warning::プレビュー動画を送れませんでした（App Store Connect の画面で入れてください）: {e}")
+        return 0
+
+
+def send_previews(folder):
+    with open(os.path.join(folder, "preview.json"), encoding="utf-8") as f:
+        info = json.load(f)
+    bundle = env("BUNDLE_ID")
+    q = urllib.parse.urlencode({"filter[bundleId]": bundle})
+    apps = [d for d in call("GET", f"/apps?{q}", soft=True).get("data", []) if d["attributes"]["bundleId"] == bundle]
+    if not apps:
+        print(f"::warning::App Store Connect にアプリ {bundle} がないので、プレビュー動画は送りません")
+        return 0
+    versions = call("GET", f"/apps/{apps[0]['id']}/appStoreVersions?filter[platform]=IOS&limit=20", soft=True).get("data", [])
+    ver = next((v for v in versions if v["attributes"].get("appStoreState") in EDITABLE), None)
+    if not ver:
+        print("::warning::直せるバージョン（提出の準備中など）がないので、プレビュー動画は送りません")
+        return 0
+    locs = {l["attributes"]["locale"]: l["id"] for l in
+            call("GET", f"/appStoreVersions/{ver['id']}/appStoreVersionLocalizations?limit=50", soft=True).get("data", [])}
+    sent = 0
+    for rel in info["videos"]:
+        lang, name = rel.split("/")
+        kind = name.rsplit(".", 1)[0]
+        loc = locs.get(lang)
+        if not loc or kind not in PREVIEW_TYPES:
+            print(f"::warning::{rel}: バージョンに {lang} がない（または知らない機種）ので送りません")
+            continue
+        try:
+            sets = call("GET", f"/appStoreVersionLocalizations/{loc}/appPreviewSets?limit=50", soft=True).get("data", [])
+            ps = next((s for s in sets if s["attributes"].get("previewType") == PREVIEW_TYPES[kind]), None)
+            if not ps:
+                ps = call("POST", "/appPreviewSets", {"data": {"type": "appPreviewSets",
+                          "attributes": {"previewType": PREVIEW_TYPES[kind]},
+                          "relationships": {"appStoreVersionLocalization": {"data": {"type": "appStoreVersionLocalizations", "id": loc}}}}},
+                          soft=True)["data"]
+            old = [o["id"] for o in call("GET", f"/appPreviewSets/{ps['id']}/appPreviews?limit=10", soft=True).get("data", [])]
+            # 新しい動画を入れてから前のを消す（入れるのに失敗しても、前の動画は残る）。1つの枠は3本までなので、3本あれば先に1本だけ消す
+            if len(old) >= 3:
+                call("DELETE", f"/appPreviews/{old.pop()}", soft=True)
+            upload_preview(ps["id"], os.path.join(folder, rel), info.get("poster", "00:00:05:00"))
+            for oid in old:
+                call("DELETE", f"/appPreviews/{oid}", soft=True)
+            print(f"プレビュー動画 {rel} → {PREVIEW_TYPES[kind]}（表紙 {info.get('poster')}）")
+            sent += 1
+        except (ApiError, OSError, ValueError, KeyError, TypeError) as e:
+            print(f"::warning::プレビュー動画 {rel} を送れませんでした（App Store Connect の画面で入れてください）: {e}")
+    print("::notice::プレビュー動画は App Store Connect で処理が終わるまで（数分〜）「処理中」になる")
+    return sent
+
+
 def key_json(path):
     with open(path, "w") as f:
         json.dump({"key_id": env("ASC_KEY_ID"), "issuer_id": env("ASC_ISSUER_ID"),
@@ -175,5 +263,7 @@ if __name__ == "__main__":
         setup(game_center="--game-center" in sys.argv[2:])
     elif len(sys.argv) >= 3 and sys.argv[1] == "key-json":
         key_json(sys.argv[2])
+    elif len(sys.argv) >= 3 and sys.argv[1] == "previews":
+        previews(sys.argv[2])
     else:
         sys.exit(__doc__)

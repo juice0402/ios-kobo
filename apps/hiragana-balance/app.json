@@ -84,5 +84,49 @@
         "js": "(function(){var s=5;Math.random=function(){s=s*16807%2147483647;return(s-1)/2147483646};var c=document.getElementById('gameCanvas'),n=0;function sc(){return parseInt(document.getElementById('scoreVal').textContent,10)||0}function over(){return !!document.getElementById('retryBtn').offsetParent}function drop(dx){var r=c.getBoundingClientRect(),x=r.left+r.width/2+dx*r.width/400,y=r.bottom-4,o={clientX:x,clientY:y,bubbles:true,pointerId:1,isPrimary:true};c.dispatchEvent(new PointerEvent('pointerdown',o));window.dispatchEvent(new PointerEvent('pointerup',o))}function t(){if(over())return;if(sc()>=n){drop(n<6?(n%2?6:-6):130);n++}setTimeout(t,300)}document.getElementById('startBtn').click();setTimeout(t,1200)})();"
       }
     ]
+  },
+  "preview": {
+    "languages": ["ja", "en-US"],
+    "font": "KleeOne-SemiBold",
+    "style": "paper",
+    "capY": 0.155,
+    "poster": 13.2,
+    "init": "window.APP_GAMECENTER=true;window.APP_RANKING=function(){};window.APP_SHARE=function(){};window.APP_SCORE=function(){};window.APP_HAPTIC=function(){};",
+    "scenes": [
+      {
+        "name": "play",
+        "len": 25,
+        "js": "(function(){window.__hb={c:document.getElementById('gameCanvas'),n:0,log:[],sc:function(){return parseInt(document.getElementById('scoreVal').textContent,10)||0},over:function(){return !!document.getElementById('retryBtn').offsetParent},drop:function(dx,ms){var c=this.c,r=c.getBoundingClientRect(),k=r.width/400,y=r.top+r.height*.8,x0=r.left+r.width/2,x1=Math.max(r.left+8,Math.min(r.right-8,x0+dx*k));__pv.drag([[x0,y],[x1,y]],ms,c)},run:function(plan){var h=this,i=0,next=function(){if(h.over()){h.log.push(['over',performance.now()]);return}if(i>=plan.length)return;if(h.sc()<h.n){setTimeout(next,50);return}var a=plan[i++];setTimeout(function(){var ms=a.ms||600,rm=a.r?(a.rm||600)+250:0;if(a.r)__pv.hold(a.r>0?'#rotateRightBtn':'#rotateLeftBtn',a.rm||600);h.log.push([a.r?'rot':'drop',performance.now()]);setTimeout(function(){h.drop(a.dx,ms);h.n++;setTimeout(next,ms+100)},rm)},a.w||250)};next()}};})();",
+        "steps": [
+          [1.4, "__pv.click('#startBtn')"],
+          [
+            2.2,
+            "__hb.run([{dx:0},{dx:0},{dx:0,r:1,rm:650},{dx:0,r:-1,rm:650},{dx:0},{dx:200,ms:800,w:400},{dx:-200,ms:800},{dx:200,ms:800}])"
+          ]
+        ],
+        "captions": [
+          {"at": 1.9, "to": 6.7, "text": {"ja": "ひらがなを机に落として積む", "en-US": "Drop hiragana onto the desk"}},
+          {"at": 6.9, "to": 11.9, "text": {"ja": "矢印で回して置き方を決める", "en-US": "Rotate with the arrows"}},
+          {"at": 12.1, "to": 15.3, "text": {"ja": "高く積むほど記録がのびる", "en-US": "Stack as high as you can"}},
+          {"at": 15.5, "to": 19.6, "text": {"ja": "1つ落ちたらおしまい", "en-US": "One falls, the round ends"}},
+          {"at": 19.8, "to": 25, "text": {"ja": "ランキングで記録をくらべる", "en-US": "Compare scores on Game Center"}}
+        ],
+        "devices": {
+          "iphone": {
+            "captions": [
+              {"at": 1.9, "to": 6.7, "text": {"ja": "ひらがなを机に落として積む", "en-US": "Drop hiragana onto the desk"}},
+              {"at": 6.9, "to": 11.9, "text": {"ja": "矢印で回して置き方を決める", "en-US": "Rotate with the arrows"}},
+              {"at": 12.1, "to": 13.9, "text": {"ja": "高く積むほど記録がのびる", "en-US": "Stack as high as you can"}},
+              {"at": 14.1, "to": 19.6, "text": {"ja": "1つ落ちたらおしまい", "en-US": "One falls, the round ends"}},
+              {"at": 19.8, "to": 25, "text": {"ja": "ランキングで記録をくらべる", "en-US": "Compare scores on Game Center"}}
+            ]
+          }
+        }
+      }
+    ],
+    "seed": 11,
+    "devices": {
+      "ipad": {"seed": 13, "capY": 0.07}
+    }
   }
 }

@@ -73,5 +73,96 @@
         "js": "(function(){var s=7;Math.random=function(){s=s*16807%2147483647;return(s-1)/2147483646};location.hash='shot=set'})();"
       }
     ]
+  },
+  "preview": {
+    "languages": ["ja"],
+    "font": "MPLUSRounded1c-ExtraBold",
+    "style": "neon",
+    "capY": 0.86,
+    "poster": 15.1,
+    "scenes": [
+      {
+        "name": "play",
+        "len": 14.6,
+        "js": "window.__peg=function(bx,by){var w=innerWidth,h=innerHeight,z=Math.min(w/440,h/880);z=z<1.06?1:Math.round(Math.min(z,1.6)*100)/100;var VW=w/z,VH=h/z,res=VH>VW*1.2?64:0,s=Math.min(VW/360,(VH-res)/600),ex=VH-600*s,ox=(VW-360*s)/2,oy=Math.max(0,Math.min(ex-84,ex*.3));return [(ox+bx*s)*z,(oy+by*s)*z]};",
+        "steps": [
+          [3.4, "__pv.click('#startBtn')"],
+          [4.5, "__pv.click('#hub .slot.cur .cab')"],
+          [6.9, "__pv.turn('#dial',.8,1900)"],
+          [
+            10.3,
+            "(function(){var q=__peg(158,245);__pv.tap(q[0],q[1])})()"
+          ],
+          [11.5, "__pv.click('#sheetBody .trow .buy:not(:disabled)')"]
+        ],
+        "captions": [
+          {"at": 0.3, "to": 3.3, "text": "パチンコの台でタワーディフェンス", "y": 0.285},
+          {"at": 5.6, "to": 9.7, "text": "ハンドルを回して玉を打つ"},
+          {"at": 9.9, "to": 14.6, "text": "光る杭にタワーを建てる", "y": 0.7}
+        ],
+        "seed": 3
+      },
+      {
+        "name": "fever",
+        "len": 4.6,
+        "hash": "shot=play:7",
+        "warm": 0.2,
+        "cutins": [
+          {"at": 0.1, "to": 1.5, "text": "FEVER"}
+        ],
+        "captions": [
+          {"at": 1.4, "to": 4.6, "text": "まん中に入るとFEVER"}
+        ],
+        "seed": 7
+      },
+      {
+        "name": "boards",
+        "len": 5.4,
+        "hash": "shot=hall:0",
+        "warm": 0.6,
+        "steps": [
+          [
+            0.6,
+            "(function(){var a=document.querySelector('#hub .aisle');if(!a)return;var s=[].slice.call(a.querySelectorAll('.slot')).filter(function(e){return !e.classList.contains('soon')});a.style.scrollSnapType='none';a.style.scrollBehavior='auto';var c=function(e){return e.offsetLeft+e.offsetWidth/2-a.clientWidth/2};var x0=a.scrollLeft,x1=c(s[s.length-1]),T=3400,n=Math.round(T/33),i=0;var st=function(){i++;var u=i/n,e=u<.5?4*u*u*u:1-Math.pow(-2*u+2,3)/2;a.scrollLeft=x0+(x1-x0)*e;a.dispatchEvent(new Event('scroll'));if(i<n)setTimeout(st,T/n)};setTimeout(st,0)})();"
+          ]
+        ],
+        "captions": [
+          {"at": 0.2, "to": 5.4, "text": "草原から天国まで9台", "y": 0.8}
+        ],
+        "seed": 7
+      }
+    ]
+  },
+  "promo": {
+    "font": "MPLUSRounded1c-ExtraBold",
+    "headlines": {
+      "1-title": ["パチンコの台で", "タワーディフェンス"],
+      "2-fever": ["まん中に入ると", "FEVER"],
+      "3-boss": ["杭にタワーを建てて", "おばけを止める"],
+      "4-heaven": ["草原から天国まで", "9つの台"],
+      "5-boards": ["1つの台に", "10のWAVE"],
+      "6-set": ["持っていく玉を", "えらんでセット"]
+    },
+    "motion": {
+      "scenes": [
+        {"shot": "1-title", "fx": "neon", "len": 3.2},
+        {"shot": "2-fever", "fx": "slam", "len": 3.0},
+        {"shot": "3-boss", "fx": "pop", "len": 2.8},
+        {"shot": "4-heaven", "fx": "spin", "len": 2.8},
+        {"shot": "5-boards", "fx": "spin", "len": 2.8},
+        {"shot": "6-set", "fx": "pop", "len": 2.8}
+      ],
+      "end": 2.6
+    },
+    "end": {
+      "shot": "1-title",
+      "logo": [0.02, 0.09, 0.98, 0.27],
+      "ghosts": [0.0, 0.45, 1.0, 0.8],
+      "texts": {
+        "soon": "App Storeで配信予定",
+        "live": "App Storeで配信中",
+        "sub": "iPhone・iPad"
+      }
+    }
   }
 }
