@@ -68,8 +68,10 @@ iPhone 886×1920・iPad 1200×1600、15〜30秒、30fps、H.264、無音のス�
 
 ## 宣伝の絵と縦の宣伝動画（app.json の promo・scripts/promo.py）
 
-`promo.headlines`（場面ごとの見出し2行）で、スクショを案A「ネオンの看板」（紫の夜空・アーチ・見出し・光る枠の中にゲームの画面）に包む。iPhone 1320×2868・iPad 2064×2752。元のスクショは `build/<app>/promo/raw`。
-`promo.motion` があると、縦の宣伝動画（1080×1920・20秒・動く文字・おわりはタイトルから切り出したロゴとおばけ）も作る。SNS・あそびトーク用で App Store には送らない。おわりの文は `promo.end.texts`（app.json に `storeUrl` があれば `live`＝「App Storeで配信中」、なければ `soon`＝「配信予定」）。
+`promo.headlines`（場面ごとの見出し2行。言語ごとにも書ける）で、スクショを宣伝の絵に包む。iPhone 1320×2868・iPad 2064×2752。元のスクショは `build/<app>/promo/raw`。
+見た目は `promo.theme`：`neon`（決めなければこれ）＝案A「ネオンの看板」（紫の夜空・アーチ・光る枠。パチおば）／`paper`＝「画用紙と机」（方眼の画用紙・テープに書いた1行目・墨の2行目と朱の花丸・竹のものさし・白いふちの画面。ひらがなバランス）。paper は `promo.art` にゲームの中の絵（paper・ruler・title）の道を書く。
+`promo.motion` があると、縦の宣伝動画（1080×1920・18〜20秒・動く文字）も作る。SNS・あそびトーク用で App Store には送らない。おわりの文は `promo.end.texts`（app.json に `storeUrl` があれば `live`＝「App Storeで配信中」、なければ `soon`＝「配信予定」）。neon のおわりはタイトルから切り出したロゴとおばけ（`promo.end` の logo・ghosts）、paper のおわりはタイトルの絵。paper の場面に `clip`（`from` 秒・`crop` の割合）があると、プレビュー動画（先に preview.py render）のテロップのない所を切り取って画面の中で動かす。
+ためすときは `python3 scripts/promo.py shots <app>` → `python3 scripts/promo.py video <app>`（どちらも先に prepare.py と shots.py render）。
 
 ## ゲームを足す
 

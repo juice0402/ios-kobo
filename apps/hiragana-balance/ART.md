@@ -8,7 +8,8 @@
 | 積む文字の形 | C | Yuji Syuku（SIL OFL 1.1）のアウトラインを太らせたもの |
 | 画面の文字 | C | Klee One（SIL OFL 1.1）。アプリに同梱し、ライセンスの文（fonts/KleeOne-OFL.txt）も入れる |
 | アイコン（icon.png） | C | ゲームの文字の形からコードで描いたもの。juice0402/hiragana-balance の assets/icons/icon_C_card.png（2026-10-07） |
-| App Store のスクショ | C | アプリと同じゲームの画面を headless Chrome で撮ったもの（scripts/shots.py） |
+| App Store のスクショ | A＋C | アプリと同じゲームの画面を headless Chrome で撮ったもの（scripts/shots.py）を、宣伝の絵「画用紙と机」に包む（scripts/promo.py の paper：工房の見た目の paper.webp・ruler.webp〔A〕と、方眼・テープ・花丸・目盛り〔コード〕・Klee One の文字） |
+| 縦の宣伝動画（SNS・あそびトーク用。アプリには入れない） | A＋C | 上の絵と同じ部品＋タイトル title.webp〔A〕＋プレビュー動画の一部（ゲームの画面） |
 | サポートのページの絵 | C | アイコンを小さくしたもの |
 | 工房の見た目（skins/kobo。app.json の skin） | A | Canva の AI で言葉から作った絵（11/6 に Canva で確認。どれもアカウントの AI の生成物で、ライブラリの素材は入っていない）。プロンプトの記録はなく、絵の説明と ID を残す |
 | ├ タイトル title.webp | A＋C | デザイン DAHZSUip0so（2026-10-28）。背景は AI の絵 MAHZScqTkV4「学校の机と文房具」。題名と積んだ文字は Yuji Syuku・Klee One（OFL）の形を図形にしたもの、テープ・花丸も図形。1200x1800 で書き出し |
