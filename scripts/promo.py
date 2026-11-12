@@ -351,17 +351,54 @@ def motion_page_paper(app, cfg, promo, font):
     return data["total"], page
 
 
-def video(app):
-    cfg, promo = load(app)
-    if not promo or not promo.get("motion"):
-        print(f"{app}: app.json に promo.motion がないので、宣伝動画は作りません")
-        return
+def ensure_font(family, weight):
+    """google/fonts の OFL のフォントを build/_fonts に取ってきて、font_data_url で使う名前（例 YujiSyuku-Regular）を返す"""
+    import prepare
+    path, variable = prepare.download_font(family, weight, ROOT / "build" / "_fonts")
+    if not path or variable:
+        sys.exit(f"フォント {family} {weight} を google/fonts で見つけられません（可変フォントは使わない）")
+    return path.stem.split("-", 1)[1]
+
+
+def motion_page_sumi(app, cfg, promo, ev):
+    """「筆と墨」（theme sumi）の縦の宣伝動画のページ（promo_motion_sumi.html）。海外向け（英語の見出し）。
+    はじめに筆の文字（縦書き）とローマ字、場面は墨の帯の見出し・朱の判・掛け軸のように開く画面、切りかえは墨のひと筆"""
+    from PIL import Image
+    lang = ev.get("lang", "en-US")
     out_dir = ROOT / "build" / app / "promo"
-    if not (out_dir / "raw").exists():
-        sys.exit("先に scripts/promo.py shots を動かしてください（元のスクショを使う）")
-    font = font_data_url(app, promo.get("font", "MPLUSRounded1c-ExtraBold"), [all_text(cfg, promo)], out_dir / "_font.ttf")
-    paper = promo.get("theme", "neon") == "paper"
-    total, html = motion_page_paper(app, cfg, promo, font) if paper else motion_page(app, cfg, promo, font)
+    raw = out_dir / "raw" / lang
+    art = art_paths(app, promo)
+    texts = ev["texts"]
+    t1 = texts["live"] if cfg.get("storeUrl") else texts["soon"]
+    scenes, t = [], ev["intro"]["len"]
+    for i, m in enumerate(ev["scenes"]):
+        h = heads(promo, lang, m["shot"])
+        if not h:
+            sys.exit(f"promo.headlines に {m['shot']} の {lang} の見出しがありません")
+        s = {"h1": h[0], "h2": h[1], "len": m["len"], "t0": t}
+        if m.get("clip"):
+            s["frames"], s["aspect"] = clip_frames(app, lang, m["clip"], int(round(m["len"] * FPS)) + 2, out_dir / "_clip" / f"{ev['name']}{i}")
+        else:
+            png = raw / f"{m['shot']}-iphone.png"
+            w, hh = Image.open(png).size
+            s["src"], s["aspect"] = png.as_uri(), w / hh
+        scenes.append(s)
+        t += m["len"]
+    fonts = ev["fonts"]
+    text_name = ensure_font(*fonts["text"])
+    brush_name = ensure_font(*fonts["brush"])
+    words = " ".join([s["h1"] + s["h2"] for s in scenes] + [t1, texts["sub"], ev["intro"].get("caption", "")] + ev["intro"]["romaji"])
+    f_text = font_data_url(app, text_name, [words], out_dir / f"_font-{ev['name']}-text.ttf")
+    f_brush = font_data_url(app, brush_name, [ev["intro"]["kana"] + ev["seal"]], out_dir / f"_font-{ev['name']}-brush.ttf")
+    data = {"intro": ev["intro"], "seal": ev["seal"], "scenes": scenes, "end_t0": t, "total": t + ev["end"], "wipe": .38,
+            "paper_img": art["paper"].as_uri(), "title": art["title"].as_uri(), "t1": t1, "t2": texts["sub"]}
+    page = (Path(__file__).resolve().parent / "promo_motion_sumi.html").read_text(encoding="utf-8")
+    page = page.replace("__FONT_TEXT__", f_text).replace("__FONT_BRUSH__", f_brush).replace("__DATA__", json.dumps(data, ensure_ascii=False))
+    return data["total"], page
+
+
+def render_video(html, total, out_dir, dest):
+    """動画のページ（render(t) で1コマを描く）を 30fps で撮って mp4 にする（1080×1920・無音のステレオ AAC・18〜20秒）"""
     tmp = out_dir / "_motion.html"
     tmp.write_text(html, encoding="utf-8")
     frames = out_dir / "_frames"
@@ -386,7 +423,6 @@ def video(app):
                 sys.exit(f"::error::宣伝動画のページでエラー: {errs[0][:200]}")
             return n
     n = asyncio.run(shoot())
-    dest = out_dir / f"{app}-promo.mp4"
     subprocess.run(["ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-framerate", str(FPS), "-i", str(frames / "f%04d.jpg"),
                     "-f", "lavfi", "-i", "anullsrc=channel_layout=stereo:sample_rate=48000",
                     "-vf", "scale=in_range=full:out_range=tv,format=yuv420p", "-color_range", "tv",
@@ -406,10 +442,35 @@ def video(app):
         sys.exit("::error::" + "・".join(bad))
 
 
+def video(app, only=None):
+    """only：main（いつもの動画だけ）か promo.extraVideos の name（その動画だけ）。決めなければ全部"""
+    cfg, promo = load(app)
+    if not promo or not promo.get("motion"):
+        print(f"{app}: app.json に promo.motion がないので、宣伝動画は作りません")
+        return
+    out_dir = ROOT / "build" / app / "promo"
+    if not (out_dir / "raw").exists():
+        sys.exit("先に scripts/promo.py shots を動かしてください（元のスクショを使う）")
+    names = ["main"] + [e["name"] for e in promo.get("extraVideos", [])]
+    if only and only not in names:
+        sys.exit(f"{only} という動画はありません（{'・'.join(names)}）")
+    if only in (None, "main"):
+        font = font_data_url(app, promo.get("font", "MPLUSRounded1c-ExtraBold"), [all_text(cfg, promo)], out_dir / "_font.ttf")
+        paper = promo.get("theme", "neon") == "paper"
+        total, html = motion_page_paper(app, cfg, promo, font) if paper else motion_page(app, cfg, promo, font)
+        render_video(html, total, out_dir, out_dir / f"{app}-promo.mp4")
+    for ev in promo.get("extraVideos", []):
+        if only not in (None, ev["name"]):
+            continue
+        if ev.get("theme") != "sumi":
+            sys.exit(f"extraVideos の {ev['name']}：theme は sumi だけです")
+        total, html = motion_page_sumi(app, cfg, promo, ev)
+        render_video(html, total, out_dir, out_dir / f"{app}-promo-{ev['name']}.mp4")
+
 if __name__ == "__main__":
     if len(sys.argv) == 3 and sys.argv[1] == "shots":
         shots(sys.argv[2])
-    elif len(sys.argv) == 3 and sys.argv[1] == "video":
-        video(sys.argv[2])
+    elif len(sys.argv) in (3, 4) and sys.argv[1] == "video":
+        video(sys.argv[2], sys.argv[3] if len(sys.argv) == 4 else None)
     else:
         sys.exit(__doc__)
