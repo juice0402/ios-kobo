@@ -149,6 +149,23 @@
     },
     "end": {
       "texts": {"soon": "App Storeで配信予定", "live": "App Storeで配信中", "sub": "iPhone・iPad"}
-    }
+    },
+    "extraVideos": [
+      {
+        "name": "en-sumi",
+        "theme": "sumi",
+        "lang": "en-US",
+        "fonts": {"text": ["Shippori Mincho B1", 800], "brush": ["Yuji Syuku", 400]},
+        "intro": {"caption": "HIRAGANA BALANCE", "kana": "ひらがな", "romaji": ["hi", "ra", "ga", "na"], "len": 2.6},
+        "seal": "ひらがな",
+        "scenes": [
+          {"shot": "1-title", "len": 3.8},
+          {"shot": "2-play", "len": 5.2, "clip": {"from": 7.2, "crop": [0.14, 0.46, 0.86, 1]}},
+          {"shot": "3-over", "len": 5.3, "clip": {"from": 13.6, "crop": [0.1, 0.34, 0.9, 1]}}
+        ],
+        "end": 3.0,
+        "texts": {"soon": "Coming soon to the App Store", "live": "Out now on the App Store", "sub": "iPhone & iPad"}
+      }
+    ]
   }
 }

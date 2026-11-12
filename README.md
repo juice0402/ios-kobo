@@ -72,6 +72,7 @@ iPhone 886×1920・iPad 1200×1600、15〜30秒、30fps、H.264、無音のス�
 見た目は `promo.theme`：`neon`（決めなければこれ）＝案A「ネオンの看板」（紫の夜空・アーチ・光る枠。パチおば）／`paper`＝「画用紙と机」（方眼の画用紙・テープに書いた1行目・墨の2行目と朱の花丸・竹のものさし・白いふちの画面。ひらがなバランス）。paper は `promo.art` にゲームの中の絵（paper・ruler・title）の道を書く。
 `promo.motion` があると、縦の宣伝動画（1080×1920・18〜20秒・動く文字）も作る。SNS・あそびトーク用で App Store には送らない。おわりの文は `promo.end.texts`（app.json に `storeUrl` があれば `live`＝「App Storeで配信中」、なければ `soon`＝「配信予定」）。neon のおわりはタイトルから切り出したロゴとおばけ（`promo.end` の logo・ghosts）、paper のおわりはタイトルの絵。paper の場面に `clip`（`from` 秒・`crop` の割合）があると、プレビュー動画（先に preview.py render）のテロップのない所を切り取って画面の中で動かす。
 ためすときは `python3 scripts/promo.py shots <app>` → `python3 scripts/promo.py video <app>`（どちらも先に prepare.py と shots.py render）。
+`promo.extraVideos` に足すと、別の縦の宣伝動画も作る（`build/<app>/promo/<app>-promo-<name>.mp4`）。いまは theme `sumi`＝「筆と墨」（海外向け・英語の見出し）：和紙に筆の文字（縦書き・ローマ字・朱の判）→ 墨のひと筆の帯の見出しと掛け軸のように開く画面 → 画面いっぱいの墨のひと筆で切りかえ → タイトルの絵の掛け軸。見出しは `promo.headlines` のその言語、フォントは `fonts`（google/fonts の OFL を build/_fonts に取ってくる）。1本だけ作るときは `python3 scripts/promo.py video <app> <name>`（main＝いつもの動画）。
 
 ## ゲームを足す
 
