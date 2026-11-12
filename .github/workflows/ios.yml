@@ -101,7 +101,7 @@ jobs:
         run: python scripts/prepare.py "$APP" --ref "$GAME_REF"
       - name: スクショを撮る（iPhone 6.9 インチ・iPad 13 インチ）
         run: python scripts/shots.py render "$APP"
-      - name: 宣伝の絵に包む（app.json に promo があるアプリだけ。案A。元のスクショは build/<app>/promo/raw）
+      - name: 宣伝の絵に包む（app.json に promo があるアプリだけ。見た目は promo.theme。元のスクショは build/<app>/promo/raw）
         run: python scripts/promo.py shots "$APP"
       - uses: actions/upload-artifact@v5
         with:
