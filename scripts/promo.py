@@ -163,7 +163,7 @@ body{{background:{paper_css(u(art['paper']), k)};position:relative;font-family:K
 .l1{{position:relative;display:inline-block;white-space:nowrap;font-size:{int(86*k)}px;letter-spacing:.05em;color:#3b3129}}
 .l2w{{position:relative;display:inline-block;margin-top:{int(34*k)}px}}
 .l2{{display:inline-block;white-space:nowrap;font-size:{int(150*k)}px;line-height:1.1;letter-spacing:.04em;text-shadow:0 {max(1,int(2*k))}px 0 rgba(255,253,246,.75),0 0 {max(1,int(2*k))}px rgba(43,36,31,.35)}}
-.hm{{position:absolute;width:{int(176*k)}px;height:{int(176*k)}px;right:{int(-152*k)}px;top:{int(-98*k)}px;transform:rotate(-14deg);mix-blend-mode:multiply;opacity:.93}}
+.hm{{position:absolute;width:{int(176*k)}px;height:{int(176*k)}px;right:{int(-182*k)}px;top:{int(-52*k)}px;transform:rotate(-14deg);mix-blend-mode:multiply;opacity:.93}}
 .hm path{{fill:none;stroke:{RED};stroke-width:6.6;stroke-linecap:round;stroke-linejoin:round}}
 .rl{{position:absolute;left:{int((W-rw)/2)}px;top:{int(594*k)}px;width:{rw}px;height:{rh}px;transform:rotate(-1.1deg);filter:drop-shadow(0 {int(8*k)}px {int(10*k)}px rgba(70,45,20,.30))}}
 .rl img{{position:absolute;inset:0;width:100%;height:100%}}
@@ -171,12 +171,12 @@ body{{background:{paper_css(u(art['paper']), k)};position:relative;font-family:K
 .fr{{position:absolute;left:50%;transform:translateX(-50%);top:{top}px;width:{sw}px;padding:{pad}px;box-sizing:border-box;border-radius:{int(74*k)}px;background:#fffdf7;
   box-shadow:0 0 0 {max(1,int(1.5*k))}px rgba(120,90,50,.14),0 {int(34*k)}px {int(70*k)}px {int(-12*k)}px rgba(70,45,20,.38),0 {int(6*k)}px {int(16*k)}px rgba(70,45,20,.16)}}
 .fr img{{display:block;width:100%;border-radius:{int(60*k)}px}}
-.tw{{position:absolute;top:{int(-30*k)}px;width:{int(270*k)}px;height:{int(80*k)}px;filter:drop-shadow(0 {int(3*k)}px {int(4*k)}px rgba(80,55,20,.22))}}
-.tw.a{{left:{int(-88*k)}px;transform:rotate(-38deg)}}.tw.b{{right:{int(-88*k)}px;transform:rotate(38deg)}}
+.tw{{position:absolute;top:{int(-40*k)}px;width:{int(270*k)}px;height:{int(80*k)}px;filter:drop-shadow(0 {int(3*k)}px {int(4*k)}px rgba(80,55,20,.22))}}
+.tw.a{{left:{int(-106*k)}px;transform:rotate(-38deg)}}.tw.b{{right:{int(-106*k)}px;transform:rotate(38deg)}}
 .tw b{{position:absolute;inset:0;{tape_css(k)}}}
 </style></head><body>
 <div class=hd><div class=l1w><span class=tp1></span><span class=l1 data-fit={int(W-300*k)}>{h1}</span></div><br>
-<div class=l2w><span class=l2 data-fit={int(W-440*k)}>{h2}</span><svg class=hm viewBox="-64 -64 128 128"><path d="{hanamaru_d()}"/></svg></div></div>
+<div class=l2w><span class=l2 data-fit={int(W-470*k)}>{h2}</span><svg class=hm viewBox="-64 -64 128 128"><path d="{hanamaru_d()}"/></svg></div></div>
 <div class=rl><img src="{u(art['ruler'])}"><i></i></div>
 <div class=fr><img src="{u(shot)}"><span class="tw a"><b></b></span><span class="tw b"><b></b></span></div>
 {FIT_JS}</body></html>"""

@@ -1,5 +1,5 @@
 <!doctype html><html><head><meta charset=utf-8>
-<!-- 縦の宣伝動画「画用紙と机」（promo.theme paper）のページ。scripts/promo.py video が __FONT__・__T1__・__T2__・__DATA__ を入れ、render(t) で1コマずつ撮る。
+<!-- 縦の宣伝動画「画用紙と机」（promo.theme paper）のページ。scripts/promo.py video がフォント・おわりの文・データ（下の印）を入れ、render(t) で1コマずつ撮る。
      動き：はじめに方眼が上から引かれ、竹のものさしが左からすべりこむ／1行目はマスキングテープが左から貼られて文字が出る／
      2行目は場面ごとに ink（筆で左から書くように）・drop（1文字ずつ落ちてきて、ゲームのように着地してはずむ）・stamp（ポンと押す）／
      朱の花丸は線を描くように（stamp は判のように押す）／画面は紙のように少し傾いて下から置かれ、角にテープが貼られる／
@@ -17,7 +17,7 @@ body{font-family:K;font-weight:600;position:relative;color:#2b241f}
 .l2w{position:relative;display:inline-block;margin-top:26px}
 .l2{display:inline-block;font-size:122px;line-height:1.1;letter-spacing:.04em;text-shadow:0 2px 0 rgba(255,253,246,.75),0 0 2px rgba(43,36,31,.35)}
 .ch{display:inline-block;will-change:transform}
-svg.hm{position:absolute;width:144px;height:144px;right:-124px;top:-80px;mix-blend-mode:multiply;overflow:visible}
+svg.hm{position:absolute;width:144px;height:144px;right:-146px;top:-44px;mix-blend-mode:multiply;overflow:visible}
 svg.hm path{fill:none;stroke:#cf3a2c;stroke-width:6.6;stroke-linecap:round;stroke-linejoin:round}
 #rl{position:absolute;left:-43px;top:478px;width:1166px;height:50px;transform-origin:0 50%;filter:drop-shadow(0 7px 8px rgba(70,45,20,.30))}
 #rl img{position:absolute;inset:0;width:100%;height:100%}
@@ -25,8 +25,8 @@ svg.hm path{fill:none;stroke:#cf3a2c;stroke-width:6.6;stroke-linecap:round;strok
 .fr{position:absolute;left:50%;top:520px;padding:12px;border-radius:58px;background:#fffdf7;transform-origin:50% 0;
   box-shadow:0 0 0 1px rgba(120,90,50,.14),0 28px 58px -10px rgba(70,45,20,.38),0 5px 13px rgba(70,45,20,.16)}
 .fr img{display:block;border-radius:47px}
-.tw{position:absolute;top:-26px;width:220px;height:66px;filter:drop-shadow(0 3px 4px rgba(80,55,20,.22))}
-.tw.a{left:-72px}.tw.b{right:-72px}
+.tw{position:absolute;top:-34px;width:220px;height:66px;filter:drop-shadow(0 3px 4px rgba(80,55,20,.22))}
+.tw.a{left:-86px}.tw.b{right:-86px}
 .tw b,.tpe{position:absolute;inset:0}
 #end{position:absolute;inset:0;opacity:0}
 #end .card{position:absolute;left:50%;top:170px;width:760px;margin-left:-394px;padding:14px;background:#fffdf7;border-radius:10px;transform-origin:50% 0;
@@ -126,7 +126,7 @@ async function setFrame(s,lt){
 }
 
 window.render=async function(t){
-  if(!fitted){await document.fonts.ready;D.scenes.forEach(s=>{fit(s.l1,W-240);fit(s.l2,W-360)});fitted=true}
+  if(!fitted){await document.fonts.ready;D.scenes.forEach(s=>{fit(s.l1,W-240);fit(s.l2,W-390)});fitted=true}
   // 方眼が上から引かれる・ものさしが左からすべりこむ
   const g=eOut(lin(t,.05,.95));$('#cover').style.clipPath=`inset(${g*100}% 0 0 0)`;
   const r=eOut(lin(t,.30,1.05));$('#rl').style.transform=`translateX(${-(1-r)*1250}px) rotate(-1.1deg)`;

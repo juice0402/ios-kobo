@@ -136,12 +136,12 @@
     "headlines": {
       "1-title": {"ja": ["ひらがな46文字を", "つみあげる"], "en-US": ["Drop and stack", "46 hiragana"]},
       "2-play": {"ja": ["向きを回して", "そっと落とす"], "en-US": ["Turn it, then", "let it drop"]},
-      "3-over": {"ja": ["積めた文字の数が", "スコアになる"], "en-US": ["Your score is", "letters stacked"]}
+      "3-over": {"ja": ["積めた文字の数が", "スコアになる"], "en-US": ["Each letter stacked", "scores a point"]}
     },
     "motion": {
       "scenes": [
         {"shot": "1-title", "fx": "drop", "len": 4.2},
-        {"shot": "2-play", "fx": "ink", "len": 6.0, "clip": {"from": 6.6, "crop": [0.12, 0.4, 0.88, 1]}},
+        {"shot": "2-play", "fx": "ink", "len": 5.2, "clip": {"from": 7.2, "crop": [0.14, 0.46, 0.86, 1]}},
         {"shot": "3-over", "fx": "stamp", "len": 5.8, "clip": {"from": 13.6, "crop": [0, 0.21, 1, 1]}}
       ],
       "end": 3.2
