@@ -17,6 +17,7 @@ scripts/shots.py         App Store のスクショ（Linux の headless Chrome�
 scripts/promo.py         スクショを宣伝の絵（案A）に包む・縦の宣伝動画（app.json に promo があるアプリ）
 scripts/preview.py       App Store のプレビュー動画（本物の画面の録画＋テロップ。app.json に preview があるアプリ）
 .github/workflows/ios.yml
+.github/workflows/metrics.yml  App Store の数字を毎日集めて枝 metrics へ
 ```
 
 Actions の「iOS アプリ」を手で動かすときの「すること」:
@@ -32,6 +33,25 @@ Actions の「iOS アプリ」を手で動かすときの「すること」:
 store では、app.json に preview があるアプリはプレビュー動画も作り、文とスクショのあとに `asc.py previews` で送る（前の動画は入れかえ。fastlane deliver はプレビュー動画を送れないため App Store Connect API で）。promo があるアプリは、スクショが宣伝の絵（案A）に包まれてから送られる。
 
 main に push したときと PR のときに、全部のゲームで check が動く。
+
+## 数字を集める（metrics.yml・asc.py analytics）
+
+Actions の「App Store の数字」が毎日 10:17（日本時間）に、App Store Connect の Analytics Reports API で数字を集め、データだけの枝 `metrics` の `metrics/<app>.csv` に足す（main には push しない）。対象は app.json に `storeUrl` があるアプリ。手で動かすときはアプリの名前を入れられる。
+
+列は `date,impressions,product_page_views,first_time_downloads,redownloads`。報告は App Store Discovery and Engagement と App Store Downloads の Standard・DAILY。
+
+| 列 | 数えるもの |
+| --- | --- |
+| impressions | Event が Impression |
+| product_page_views | Event が Page view で、Page Type が Product page |
+| first_time_downloads | Download Type が First-time Download |
+| redownloads | Download Type が Redownload（アップデート・復元は数えない） |
+
+- はじめて動かすと、そのアプリの報告（ONGOING）を頼むだけ。最初の報告は24〜48時間後
+- その日の数字が決まるのは2〜3日あと。同じ日は、いちばん新しい報告の数で入れかえる（前の報告と足さない）
+- 5人・5台より少ない行は Apple が消し、数字にノイズも足されるので、小さいアプリは少なめに出る
+- 知らない値・足りない列・知らない報告の名前があると、勝手に数えずに止める（`asc.py` の `ANALYTICS_REPORTS` を直す）
+- テストは `python3 scripts/test_asc_analytics.py`（にせの App Store Connect。ios.yml の check でも動く）
 
 ## ゲームから呼べる関数（shell/Sources/GameBridge.swift）
 

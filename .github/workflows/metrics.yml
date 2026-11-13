@@ -1,0 +1,115 @@
+name: App Store の数字
+
+# 毎日、App Store の数字（表示回数・プロダクトページの表示・初めてのダウンロード・再ダウンロード）を
+# App Store Connect の Analytics Reports API で集め、データだけの枝 metrics の metrics/<app>.csv に足す（main には push しない）。
+# 対象は apps/ の中で app.json に storeUrl があるアプリ（手で動かすときは名前を入れるとそのアプリだけ）。
+# その日の数字が決まるのは2〜3日あと。決まるまでの日は、次の日に新しい数で入れかわる。
+on:
+  schedule:
+    - cron: "17 1 * * *"   # 毎日 10:17（日本時間）
+  workflow_dispatch:
+    inputs:
+      app:
+        description: アプリ（apps/ の中のフォルダ名。空なら storeUrl があるアプリ全部）
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+concurrency:
+  group: metrics
+  cancel-in-progress: false
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+      ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+      ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+      APP_INPUT: ${{ github.event.inputs.app || '' }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: 道具を入れる
+        run: pip install -q pyjwt cryptography
+
+      - name: 対象のアプリ
+        id: p
+        run: |
+          python3 - <<'EOF'
+          import json, os, re
+          from pathlib import Path
+          want = os.environ["APP_INPUT"].strip()
+          if want:
+              if not re.fullmatch(r"[a-z0-9][a-z0-9-]*", want) or not Path(f"apps/{want}/app.json").exists():
+                  raise SystemExit(f"::error::apps/{want}/app.json がありません")
+              apps = [want]
+          else:
+              apps = sorted(d.name for d in Path("apps").iterdir()
+                            if (d / "app.json").exists() and json.loads((d / "app.json").read_text()).get("storeUrl"))
+          with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+              f.write(f"apps={' '.join(apps)}\n")
+          print("対象:", apps or "なし（storeUrl があるアプリがない）")
+          EOF
+
+      - name: 枝 metrics を取り出す（なければ作る）
+        if: steps.p.outputs.apps != ''
+        run: |
+          W="$RUNNER_TEMP/metrics"
+          if git ls-remote --exit-code --heads origin metrics >/dev/null; then
+            git fetch -q --depth=1 origin metrics
+            git worktree add -q -B metrics "$W" FETCH_HEAD
+          else
+            git worktree add -q --detach "$W"
+            git -C "$W" checkout -q --orphan metrics
+            git -C "$W" rm -rq --cached . && git -C "$W" clean -fdxq
+          fi
+          for a in ${{ steps.p.outputs.apps }}; do
+            mkdir -p "build/$a/metrics"
+            [ -f "$W/metrics/$a.csv" ] && cp "$W/metrics/$a.csv" "build/$a/metrics/$a.csv" || true
+          done
+
+      - name: Apple の鍵の確認
+        if: steps.p.outputs.apps != '' && (env.ASC_KEY_ID == '' || env.ASC_ISSUER_ID == '' || env.ASC_KEY_P8 == '')
+        run: |
+          echo "::error::Secrets（ASC_KEY_ID・ASC_ISSUER_ID・ASC_KEY_P8）がそろっていません"
+          exit 1
+
+      - name: 数字を集める（1つ失敗しても、ほかのアプリは続ける）
+        id: c
+        if: steps.p.outputs.apps != ''
+        run: |
+          fail=0
+          for a in ${{ steps.p.outputs.apps }}; do
+            echo "::group::$a"
+            python3 scripts/asc.py analytics "$a" || { echo "::error::$a の数字を集められませんでした"; fail=1; }
+            echo "::endgroup::"
+          done
+          echo "fail=$fail" >> "$GITHUB_OUTPUT"
+
+      - name: 枝 metrics に push（変わったときだけ）
+        if: steps.p.outputs.apps != ''
+        run: |
+          W="$RUNNER_TEMP/metrics"
+          mkdir -p "$W/metrics"
+          for a in ${{ steps.p.outputs.apps }}; do
+            [ -f "build/$a/metrics/$a.csv" ] && cp "build/$a/metrics/$a.csv" "$W/metrics/$a.csv" || true
+          done
+          cd "$W"
+          git add metrics
+          if git diff --cached --quiet; then
+            echo "変わった数字はありません"
+          else
+            git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+              commit -q -m "App Store の数字 $(date -u +%F)"
+            git push -q origin HEAD:metrics
+          fi
+
+      - name: 失敗があれば赤くする
+        if: steps.c.outputs.fail == '1'
+        run: exit 1

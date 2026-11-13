@@ -110,6 +110,8 @@ jobs:
           retention-days: 30
       - name: プレビュー動画を送る関数のテスト（にせの App Store Connect）
         run: python scripts/test_asc_previews.py
+      - name: App Store の数字を集める関数のテスト（にせの App Store Connect）
+        run: python scripts/test_asc_analytics.py
       - name: プレビュー動画を作る（app.json に preview があるアプリだけ。preview・store のとき）
         if: env.MODE == 'preview' || env.MODE == 'store'
         # store では、動画が作れなくても文とスクショは送る（このステップが落ちても build に進む）
