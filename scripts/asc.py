@@ -9,6 +9,10 @@
   python3 scripts/asc.py previews D → D（build/<app>/previews）のプレビュー動画を、直せるバージョンに送る（前のは入れかえ）
   python3 scripts/asc.py analytics A → アプリ A の App Store の数字（表示回数・ページの表示・ダウンロード）を
                                       build/A/metrics/A.csv に足す（Analytics Reports API。BUNDLE_ID はいらない）
+  python3 scripts/asc.py experiment A D [--percent 50] [--name 名前]
+                                    → アプリ A の公開中のページに、D（fastlane/screenshots と同じ並び）のスクショで
+                                      プロダクトページの最適化のテストを作る（準備中の同じ名前のテストは入れかえ。
+                                      審査への提出と開始はしない。BUNDLE_ID はいらない）
 
 環境変数: ASC_KEY_ID, ASC_ISSUER_ID, ASC_KEY_P8, BUNDLE_ID, APP_NAME_EN, CONTENT_RIGHTS（空でもよい。--game-center のときは LEADERBOARD_ID も）
 """
@@ -22,7 +26,8 @@ import urllib.request
 
 import jwt  # PyJWT（cryptography と一緒に入れる）
 
-API = "https://api.appstoreconnect.apple.com/v1"
+ROOT = "https://api.appstoreconnect.apple.com"
+API = ROOT + "/v1"
 
 
 def env(name):
@@ -53,7 +58,8 @@ class ApiError(Exception):
 
 def call(method, path, body=None, soft=False):
     """soft=True のときは止めずに ApiError を投げる（呼んだ側で警告にする）"""
-    req = urllib.request.Request(API + path, method=method,
+    url = ROOT + path if path.startswith("/v2/") else API + path   # v2 の道（/v2/…）はそのまま、ほかは v1
+    req = urllib.request.Request(url, method=method,
                                  data=json.dumps(body).encode() if body else None,
                                  headers={"Authorization": f"Bearer {token()}", "Content-Type": "application/json"})
     try:
@@ -288,7 +294,8 @@ def all_pages(path):
         res = call("GET", path)
         out += res.get("data", [])
         nxt = (res.get("links") or {}).get("next") or ""
-        path = nxt[len(API):] if nxt.startswith(API + "/") else None
+        path = (nxt[len(API):] if nxt.startswith(API + "/")
+                else nxt[len(ROOT):] if nxt.startswith(ROOT + "/v2/") else None)
     return out
 
 
@@ -419,6 +426,115 @@ def analytics(app):
     return len(new)
 
 
+# ---------------------------------------------------------------- A/B テスト（プロダクトページの最適化）
+# 公開中のバージョンのページに、スクショだけを変えたトリートメントを1つ作る（新しい版はいらない）。
+# テスト（v2）は /v2/appStoreVersionExperiments（アプリにつなぐ）。トリートメント・ローカリゼーション・枠・スクショは v1。
+# 作るだけ。審査への提出と開始は、しょーくんが App Store Connect の画面でする。
+EXPERIMENT_SHOTS = {"iphone": "APP_IPHONE_67", "ipad": "APP_IPAD_PRO_3GEN_129"}   # iPhone 6.9 インチ・iPad 13 インチの枠
+EXPERIMENT_LOCALES = ("ja", "en-US")
+EXPERIMENT_TREATMENT = "画用紙と机"
+EXPERIMENT_NAME = "スクショ 画用紙と机"
+EXPERIMENT_EDITABLE = {"PREPARE_FOR_SUBMISSION"}   # 入れかえてよいのは「準備中」だけ（審査中・動いている・終わったテストはさわらない）
+
+
+def experiment_files(app, folder):
+    """{言語: {機種: [png, …]}}（app.json の場面の順）。足りないときは何も送らずに止める"""
+    with open(f"apps/{app}/app.json", encoding="utf-8") as f:
+        scenes = [s["name"] for s in json.load(f)["screenshots"]["scenes"]]
+    out = {}
+    for lang in EXPERIMENT_LOCALES:
+        for kind in EXPERIMENT_SHOTS:
+            files = [p for p in (os.path.join(folder, lang, f"{s}-{kind}.png") for s in scenes) if os.path.exists(p)]
+            if not files:
+                sys.exit(f"::error::{folder}/{lang} に {kind} のスクショがありません")
+            out.setdefault(lang, {})[kind] = files[:10]   # 1つの枠は10枚まで
+    return out
+
+
+def upload_screenshot(set_id, path):
+    import hashlib
+    with open(path, "rb") as f:
+        data = f.read()
+    made = call("POST", "/appScreenshots", {"data": {"type": "appScreenshots", "attributes": {
+        "fileName": os.path.basename(path), "fileSize": len(data)},
+        "relationships": {"appScreenshotSet": {"data": {"type": "appScreenshotSets", "id": set_id}}}}})["data"]
+    for op in made["attributes"].get("uploadOperations") or []:
+        put_bytes(op, data)
+    call("PATCH", f"/appScreenshots/{made['id']}", {"data": {"type": "appScreenshots", "id": made["id"], "attributes": {
+        "uploaded": True, "sourceFileChecksum": hashlib.md5(data).hexdigest()}}})
+    return made["id"]
+
+
+def experiment(app, folder, percent=50, name=EXPERIMENT_NAME):
+    """テストの id を返す。同じ名前のテストが準備中なら、作らずに中身（割合・トリートメント・スクショ）を入れかえる"""
+    if not 1 <= percent <= 100:
+        sys.exit("::error::--percent は 1〜100")
+    shots = experiment_files(app, folder)
+    with open(f"apps/{app}/app.json", encoding="utf-8") as f:
+        bundle = json.load(f)["bundleId"]
+    q = urllib.parse.urlencode({"filter[bundleId]": bundle})
+    apps = [d for d in call("GET", f"/apps?{q}").get("data", []) if d["attributes"]["bundleId"] == bundle]
+    if not apps:
+        sys.exit(f"::error::App Store Connect にアプリ {bundle} がありません")
+    app_id = apps[0]["id"]
+    versions = call("GET", f"/apps/{app_id}/appStoreVersions?filter[platform]=IOS&limit=20").get("data", [])
+    live = next((v for v in versions if v["attributes"].get("appStoreState") == "READY_FOR_SALE"), None)
+    if not live:
+        sys.exit("::error::公開中（READY_FOR_SALE）のバージョンがないので、テストは作れません")
+    print(f"公開中のバージョン: {live['attributes'].get('versionString', live['id'])}")
+
+    same = [e for e in all_pages(f"/apps/{app_id}/appStoreVersionExperimentsV2?limit=200")
+            if e["attributes"].get("name") == name]
+    exp = next((e for e in same if e["attributes"].get("state") in EXPERIMENT_EDITABLE), None)
+    if exp:
+        print(f"テスト「{name}」: 準備中のものがあるので入れかえます")
+        if exp["attributes"].get("trafficProportion") != percent:
+            call("PATCH", f"/v2/appStoreVersionExperiments/{exp['id']}", {"data": {
+                "type": "appStoreVersionExperiments", "id": exp["id"], "attributes": {"trafficProportion": percent}}})
+    elif same:
+        sys.exit(f"::error::テスト「{name}」は {same[0]['attributes'].get('state')} なので、さわりません（--name で別の名前に）")
+    else:
+        exp = call("POST", "/v2/appStoreVersionExperiments", {"data": {"type": "appStoreVersionExperiments",
+                   "attributes": {"name": name, "platform": "IOS", "trafficProportion": percent},
+                   "relationships": {"app": {"data": {"type": "apps", "id": app_id}}}}})["data"]
+        print(f"テスト「{name}」を作りました（{percent}% の人に新しいスクショ）")
+
+    treatments = all_pages(f"/v2/appStoreVersionExperiments/{exp['id']}/appStoreVersionExperimentTreatments?limit=50")
+    tr = next((t for t in treatments if t["attributes"].get("name") == EXPERIMENT_TREATMENT), None)
+    for t in treatments:   # トリートメントは1つだけにする（準備中の自分たちのテストの中だけ）
+        if t is not tr:
+            call("DELETE", f"/appStoreVersionExperimentTreatments/{t['id']}")
+    if not tr:
+        tr = call("POST", "/appStoreVersionExperimentTreatments", {"data": {"type": "appStoreVersionExperimentTreatments",
+                  "attributes": {"name": EXPERIMENT_TREATMENT},
+                  "relationships": {"appStoreVersionExperimentV2": {"data": {"type": "appStoreVersionExperiments", "id": exp["id"]}}}}})["data"]
+    locs = {l["attributes"].get("locale"): l for l in all_pages(
+        f"/appStoreVersionExperimentTreatments/{tr['id']}/appStoreVersionExperimentTreatmentLocalizations?limit=50")}
+    sent = 0
+    for lang, kinds in shots.items():
+        loc = locs.get(lang) or call("POST", "/appStoreVersionExperimentTreatmentLocalizations", {"data": {
+            "type": "appStoreVersionExperimentTreatmentLocalizations", "attributes": {"locale": lang},
+            "relationships": {"appStoreVersionExperimentTreatment": {"data": {
+                "type": "appStoreVersionExperimentTreatments", "id": tr["id"]}}}}})["data"]
+        sets = {s["attributes"].get("screenshotDisplayType"): s for s in all_pages(
+            f"/appStoreVersionExperimentTreatmentLocalizations/{loc['id']}/appScreenshotSets?limit=50")}
+        for kind, files in kinds.items():
+            kind_type = EXPERIMENT_SHOTS[kind]
+            ss = sets.get(kind_type) or call("POST", "/appScreenshotSets", {"data": {"type": "appScreenshotSets",
+                 "attributes": {"screenshotDisplayType": kind_type},
+                 "relationships": {"appStoreVersionExperimentTreatmentLocalization": {"data": {
+                     "type": "appStoreVersionExperimentTreatmentLocalizations", "id": loc["id"]}}}}})["data"]
+            for old in all_pages(f"/appScreenshotSets/{ss['id']}/appScreenshots?limit=50"):
+                call("DELETE", f"/appScreenshots/{old['id']}")
+            for path in files:   # 場面の順に入れる（入れた順に並ぶ）
+                upload_screenshot(ss["id"], path)
+                sent += 1
+            print(f"{lang} {kind_type}: {len(files)} 枚")
+    output("experiment_id", exp["id"])
+    print(f"::notice::テスト「{name}」に {sent} 枚。App Store Connect の「プロダクトページの最適化」で審査に出し、通ったら開始してください")
+    return exp["id"]
+
+
 def key_json(path):
     with open(path, "w") as f:
         json.dump({"key_id": env("ASC_KEY_ID"), "issuer_id": env("ASC_ISSUER_ID"),
@@ -435,5 +551,14 @@ if __name__ == "__main__":
         previews(sys.argv[2])
     elif len(sys.argv) >= 3 and sys.argv[1] == "analytics":
         analytics(sys.argv[2])
+    elif len(sys.argv) >= 4 and sys.argv[1] == "experiment":
+        import argparse
+        a = argparse.ArgumentParser(prog="asc.py experiment")
+        a.add_argument("app")
+        a.add_argument("folder")
+        a.add_argument("--percent", type=int, default=50)
+        a.add_argument("--name", default=EXPERIMENT_NAME)
+        o = a.parse_args(sys.argv[2:])
+        experiment(o.app, o.folder, o.percent, o.name)
     else:
         sys.exit(__doc__)
