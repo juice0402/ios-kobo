@@ -1,0 +1,170 @@
+<!doctype html><html><head><meta charset=utf-8>
+<!-- 縦の宣伝動画「筆と墨」（promo.extraVideos の theme sumi・海外向け）のページ。scripts/promo.py video がフォント2つとデータ（下の印）を入れ、render(t) で1コマずつ撮る。
+     はじめ：和紙に、筆の文字（縦書き）が上から書かれ、ローマ字が添えられ、朱の判が押される
+     場面：1行目は文字が浮かび、2行目は墨のひと筆の帯が左から引かれて白抜きの文字が出る・朱の判・画面は掛け軸のように上から開く（動画の場面は本物のプレイ）
+     切りかえ：画面いっぱいの墨のひと筆が左から右へ通りすぎる／おわり：タイトルの絵の掛け軸・判・「App Store」の文
+     絵はゲームの中の絵（paper・title）とコードで描いたもの（和紙の繊維・筆の帯・判・掛け軸の軸）だけ。フォントは OFL（Shippori Mincho B1・Yuji Syuku） -->
+<style>
+@font-face{font-family:T;src:url('__FONT_TEXT__')}
+@font-face{font-family:B;src:url('__FONT_BRUSH__')}
+:root{--ink:#17130f;--red:#c8372d;--washi:#f1eadc;--sub:#7a6a58}
+html,body{margin:0;width:1080px;height:1920px;overflow:hidden;background:var(--washi)}
+body{position:relative;font-family:T;color:var(--ink)}
+#bg,#fiber,#intro,#scenes,#end,#veil{position:absolute;inset:0}
+#fiber{mix-blend-mode:multiply;opacity:.3}
+.scene{position:absolute;inset:0;display:none}
+.l1{position:absolute;top:146px;left:0;right:0;text-align:center;font-size:52px;letter-spacing:.08em;white-space:nowrap}
+.ch{display:inline-block;white-space:pre}
+.sw{position:absolute;top:226px;left:40px;width:1000px;height:182px;overflow:visible}
+.l2{position:absolute;top:226px;left:0;right:0;height:182px;line-height:182px;text-align:center;font-size:100px;color:#f7efe1;white-space:nowrap;letter-spacing:.02em}
+.l2 span{display:inline-block}
+.seal{position:relative;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;place-items:center;background:var(--red);border-radius:9%;color:#fbefe6;font-family:B;filter:url(#stamp);line-height:1}
+.seal span{display:block}
+.dot{position:absolute;border-radius:50%;background:var(--ink)}
+.kk{position:absolute;left:50%}
+.kk .sc{position:relative;background:#f8f2e6;padding:14px;box-shadow:0 0 0 2px rgba(23,19,15,.85),0 26px 50px -12px rgba(40,25,10,.45)}
+.kk .sc img{display:block}
+.rod{position:absolute;height:24px;border-radius:12px;background:linear-gradient(180deg,#7a5a3e,#3f2d1e 55%,#22170e);box-shadow:0 5px 7px rgba(30,18,8,.35)}
+.rod::before,.rod::after{content:"";position:absolute;top:-3px;width:22px;height:30px;border-radius:7px;background:linear-gradient(180deg,#2b1f15,#120c07)}
+.rod::before{left:-6px}.rod::after{right:-6px}
+#intro .cap{position:absolute;top:210px;left:0;right:0;text-align:center;font-size:40px;letter-spacing:.32em;color:var(--sub)}
+#intro .k{position:absolute;left:330px;width:280px;text-align:center;font-family:B;font-size:250px;line-height:270px}
+#intro .r{position:absolute;left:640px;font-size:46px;letter-spacing:.14em;color:var(--sub)}
+#end .t1{position:absolute;top:1400px;left:0;right:0;text-align:center;font-size:64px;letter-spacing:.03em;white-space:nowrap}
+#end .t2{position:absolute;top:1556px;left:0;right:0;text-align:center;font-size:40px;letter-spacing:.14em;color:var(--sub)}
+#end .ul{position:absolute;top:1496px;left:160px;width:760px;height:34px;overflow:visible}
+#wipe{position:absolute;left:0;top:0;width:1900px;height:2700px;overflow:visible;pointer-events:none}
+#veil{background:var(--washi);opacity:0;pointer-events:none}
+</style></head><body>
+<svg width=0 height=0 style="position:absolute"><defs>
+  <filter id="rough" x="-5%" y="-20%" width="110%" height="140%"><feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="4" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="10" xChannelSelector="R" yChannelSelector="G"/></filter>
+  <filter id="stamp" x="-10%" y="-10%" width="120%" height="120%"><feTurbulence type="fractalNoise" baseFrequency="1.1" numOctaves="1" seed="9" result="n"/><feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -2.4 1.75" result="a"/><feComposite in="SourceGraphic" in2="a" operator="in" result="s"/><feTurbulence type="fractalNoise" baseFrequency="0.06" numOctaves="2" seed="2" result="w"/><feDisplacementMap in="s" in2="w" scale="5" xChannelSelector="R" yChannelSelector="G"/></filter>
+  <filter id="fib"><feTurbulence type="fractalNoise" baseFrequency="0.012 0.08" numOctaves="4" seed="7" result="t"/><feColorMatrix in="t" type="matrix" values="0 0 0 0 0.42  0 0 0 0 0.35  0 0 0 0 0.26  0 0 0 1.4 -0.62"/></filter>
+</defs></svg>
+<div id=bg></div>
+<svg id=fiber width=1080 height=1920><rect width=1080 height=1920 filter="url(#fib)"/></svg>
+<div id=intro></div>
+<div id=scenes></div>
+<div id=end></div>
+<svg id=wipe viewBox="0 0 1900 2700"><g filter="url(#rough)"><path id=wp fill="#17130f"/></g></svg>
+<div id=veil></div>
+<script>
+const D=__DATA__;
+const W=1080,H=1920;
+const $=s=>document.querySelector(s);
+const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
+const lin=(t,a,b)=>clamp((t-a)/(b-a));
+const eOut=x=>1-Math.pow(1-x,3);
+const eIn=x=>x*x*x;
+const eInOut=x=>x<.5?4*x*x*x:1-Math.pow(-2*x+2,3)/2;
+function rng(s){return()=>{s=s+0x6D2B79F5|0;let t=Math.imul(s^s>>>15,1|s);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+const P=a=>a.map(p=>p[0].toFixed(1)+' '+p[1].toFixed(1));
+
+// 墨のひと筆（横の帯）：入りは丸く、終わりはかすれて割れる。毎回同じ形（seed）
+function swash(w,h,seed){
+  const r=rng(seed),n=48,top=[],bot=[];
+  for(let i=0;i<=n;i++){const u=i/n,x=u*w*.93;
+    const f=(.6+.4*Math.min(1,u/.07))*(1-.62*Math.pow(u,2.4));
+    const cy=h/2+(r()-.5)*5+Math.sin(u*3.2)*4, half=h*.44*f+(r()-.5)*h*.05;
+    top.push([x,cy-half]);bot.push([x,cy+half])}
+  let d='M'+P(top).join(' L')+' L'+P(bot.reverse()).join(' L')+` C ${-h*.34} ${top[0][1]+h*.62} ${-h*.30} ${top[0][1]-h*.04} ${top[0][0]} ${top[0][1]} Z`;
+  // かすれ：終わりの近くに、細い筋を何本か
+  let streak='';
+  for(let k=0;k<7;k++){const y=h*(.3+.4*r()),x0=w*(.8+.06*r()),x1=w*(.94+.07*r()),th=2+6*r();
+    streak+=`M${x0.toFixed(1)} ${(y-th/2).toFixed(1)} L${x1.toFixed(1)} ${(y-th/4).toFixed(1)} L${x1.toFixed(1)} ${(y+th/4).toFixed(1)} L${x0.toFixed(1)} ${(y+th/2).toFixed(1)} Z `}
+  let gap='';
+  for(let k=0;k<6;k++){const y=h*(.25+.5*r()),x0=w*(.62+.12*r()),x1=w*(.9+.06*r());
+    gap+=`M${x0.toFixed(1)} ${y.toFixed(1)} L${x1.toFixed(1)} ${(y+(r()-.5)*4).toFixed(1)} `}
+  return `<g filter="url(#rough)"><path d="${d}" fill="#17130f"/><path d="${streak}" fill="#17130f"/></g><path d="${gap}" stroke="#f1eadc" stroke-width="2.4" stroke-linecap="round" fill="none" opacity=".75"/>`;
+}
+// 切りかえの大きな筆（縦の帯）
+(function(){const r=rng(77),w=1900,h=2700,n=40,L=[],R=[];
+  for(let i=0;i<=n;i++){const y=i/n*h;L.push([60+r()*90,y]);R.push([w-60-r()*90,y])}
+  $('#wp').setAttribute('d','M'+P(L).join(' L')+' L'+P(R.reverse()).join(' L')+' Z')})();
+
+// 朱の判（2×2。右の列から上から下へ：ひ ら／が な）
+function seal(px,chars){const c=[...chars];const order=[c[2],c[0],c[3],c[1]];
+  return `<div class=seal style="width:${px}px;height:${px}px;font-size:${px*.38}px">${order.map(x=>`<span>${x||''}</span>`).join('')}</div>`}
+// 掛け軸：上の軸・紙（上から開く）・下の軸
+function kakejiku(src,w,aspect,top){const h=w/aspect,W2=w+28,H2=h+28;
+  return {html:`<div class=kk style="top:${top}px;width:${W2}px;margin-left:${-W2/2}px">
+    <div class=sc style="width:${w}px"><img src="${src}" style="width:${w}px;height:${h}px"></div>
+    <div class="rod rt" style="left:-28px;width:${W2+56}px;top:-14px"></div><div class="rod rb" style="left:-28px;width:${W2+56}px"></div></div>`,H:H2}}
+function openKK(el,H2,p){const sc=el.querySelector('.sc');sc.style.clipPath=`inset(0 0 ${(1-p)*100}% 0)`;el.querySelector('.rb').style.top=(p*H2-10)+'px'}
+function stampAt(e,p,rot){e.style.opacity=p>0?Math.min(1,p*2.5):0;e.style.transform=`rotate(${rot-22*(1-eOut(p))}deg) scale(${2.2-1.2*eOut(p)})`}
+
+$('#bg').style.background=`radial-gradient(ellipse at 50% 42%,rgba(255,250,240,0) 50%,rgba(110,80,40,.22) 100%),url('${D.paper_img}') center/cover,#f1eadc`;
+
+// はじめ：縦書きの筆の文字＋ローマ字＋判
+const I=D.intro, kana=[...I.kana];
+const top0=(H-kana.length*270)/2+40;
+$('#intro').innerHTML=`<div class=cap>${I.caption||''}</div>`+kana.map((c,k)=>`<div class=k style="top:${top0+k*270}px">${c}</div><div class=r style="top:${top0+k*270+112}px">${I.romaji[k]||''}</div>`).join('')
+  +`<div class=sl style="position:absolute;left:640px;top:${top0+kana.length*270-30}px">${seal(130,D.seal)}</div>`;
+const iK=[...document.querySelectorAll('#intro .k')],iR=[...document.querySelectorAll('#intro .r')],iS=$('#intro .sl .seal'),iC=$('#intro .cap');
+
+// 場面
+const chars=t=>[...t].map(c=>`<span class=ch>${c}</span>`).join('');
+D.scenes.forEach((s,i)=>{
+  const el=document.createElement('div');el.className='scene';
+  const w=Math.min(780,1312*s.aspect),h2=w/s.aspect+28;const kk=kakejiku(s.frames?s.frames[0]:s.src,w,s.aspect,520+Math.max(0,(1880-520-h2)/2));s.H2=kk.H;
+  const r=rng(11+i);s.dots=[...Array(7)].map((_,k)=>{const left=k<3;return{x:left?40+r()*120:820+r()*200,y:226+(left?r()*182:20+r()*140)+(r()-.5)*90,r:3+r()*11,at:left?.32:.74+r()*.06}});
+  el.innerHTML=`<div class=l1>${chars(s.h1)}</div><svg class=sw viewBox="0 0 1000 182">${swash(1000,182,23+i*7)}</svg><div class=l2><span>${s.h2}</span></div>
+    ${s.dots.map(d=>`<div class=dot style="left:${d.x}px;top:${d.y}px;width:${d.r*2}px;height:${d.r*2}px"></div>`).join('')}
+    <div class=sl style="position:absolute;right:34px;top:178px">${seal(112,D.seal)}</div>${kk.html}`;
+  $('#scenes').appendChild(el);s.el=el;
+  s.c1=[...el.querySelectorAll('.l1 .ch')];s.sw=el.querySelector('.sw');s.l2=el.querySelector('.l2');s.l2s=el.querySelector('.l2 span');
+  s.dotsEl=[...el.querySelectorAll('.dot')];s.sealEl=el.querySelector('.sl .seal');s.kk=el.querySelector('.kk');s.img=el.querySelector('.kk img');s.cur=0;
+});
+// おわり
+(function(){const kk=kakejiku(D.title,600,1200/1800,330);D.endH=kk.H;
+  $('#end').innerHTML=kk.html+`<div class=sl style="position:absolute;left:700px;top:${330+kk.H-120}px">${seal(132,D.seal)}</div>
+  <div class=t1>${D.t1}</div><svg class=ul viewBox="0 0 760 34">${swash(760,34,91)}</svg><div class=t2>${D.t2}</div>`})();
+const eKK=$('#end .kk'),eS=$('#end .sl .seal'),eT1=$('#end .t1'),eT2=$('#end .t2'),eUL=$('#end .ul');
+
+let fitted=false;
+function fit(e,max){const w=e.scrollWidth;if(w>max)e.style.fontSize=(parseFloat(getComputedStyle(e).fontSize)*max/w)+'px'}
+
+function drawScene(s,lt){
+  s.el.style.display='block';
+  s.c1.forEach((c,k)=>{const p=eOut(lin(lt,.12+k*.018,.12+k*.018+.4));c.style.opacity=p;c.style.transform=`translateY(${(1-p)*14}px)`});
+  const e=eInOut(lin(lt,.28,.82));s.sw.style.clipPath=`inset(-30% ${(1-e)*100}% -30% ${e>0?-5:0}%)`;s.sw.style.opacity=e>0?1:0;
+  const e2=eInOut(lin(lt,.4,.95));s.l2.style.clipPath=`inset(0 ${(1-e2)*100}% 0 0)`;
+  s.dotsEl.forEach((d,k)=>{const p=eOut(lin(lt,s.dots[k].at,s.dots[k].at+.12));d.style.opacity=p;d.style.transform=`scale(${.3+.7*p})`});
+  stampAt(s.sealEl,lin(lt,.98,1.2),6);
+  const p=eOut(lin(lt,.42,1.3));openKK(s.kk,s.H2,p);
+  s.kk.style.transform=`scale(${1+.03*lin(lt,1.3,s.len)})`;s.kk.style.transformOrigin='50% 0';
+}
+async function setFrame(s,lt){if(!s.frames)return;const i=Math.min(s.frames.length-1,Math.max(0,Math.floor(lt*30+1e-6)));
+  if(i!==s.cur){s.cur=i;s.img.src=s.frames[i];await s.img.decode().catch(()=>0)}}
+
+// 切りかえの筆：time T でちょうど画面をおおう
+function wipeAt(t){const cuts=[I.len,...D.scenes.slice(1).map(s=>s.t0),D.end_t0];
+  for(const T of cuts){if(t>T-D.wipe&&t<T+D.wipe){const u=eInOut(lin(t,T-D.wipe,T+D.wipe));return -2300+u*(2300+1450)}}
+  return null}
+
+window.render=async function(t){
+  if(!fitted){await document.fonts.ready;D.scenes.forEach(s=>{fit(s.l2s,W-230);fit(s.el.querySelector('.l1'),W-120)});fit(eT1,W-120);fitted=true}
+  // はじめ
+  const intro=$('#intro');
+  if(t<I.len){intro.style.display='block';
+    iC.style.opacity=eOut(lin(t,.05,.5));
+    iK.forEach((k,i)=>{const a=.25+i*.3,p=lin(t,a,a+.34),e=eOut(p);k.style.clipPath=`inset(-5% -10% ${(1-e)*105}% -10%)`;k.style.filter=p<1?`blur(${(1-p)*4}px)`:'none';k.style.transform=`scale(${1.04-.04*e})`;
+      iR[i].style.opacity=eOut(lin(t,a+.2,a+.5))});
+    stampAt(iS,lin(t,.25+kana.length*.3+.05,.25+kana.length*.3+.3),-6);
+  } else intro.style.display='none';
+  // 場面
+  D.scenes.forEach(s=>s.el.style.display='none');
+  const end=$('#end');end.style.display='none';
+  if(t>=I.len&&t<D.end_t0){let i=D.scenes.length-1;while(i>0&&t<D.scenes[i].t0)i--;const s=D.scenes[i];drawScene(s,t-s.t0);await setFrame(s,t-s.t0)}
+  else if(t>=D.end_t0){end.style.display='block';const q=t-D.end_t0;
+    openKK(eKK,D.endH,eOut(lin(q,.12,1.0)));stampAt(eS,lin(q,1.0,1.22),-5);
+    const p1=eOut(lin(q,1.05,1.4));eT1.style.opacity=p1;eT1.style.transform=`translateY(${(1-p1)*16}px)`;
+    const eu=eInOut(lin(q,1.15,1.55));eUL.style.clipPath=`inset(-40% ${(1-eu)*100}% -40% ${eu>0?-5:0}%)`;eUL.style.opacity=eu>0?1:0;
+    eT2.style.opacity=eOut(lin(q,1.35,1.7))}
+  // 切りかえの筆
+  const x=wipeAt(t),wp=$('#wipe');
+  if(x===null)wp.style.display='none';else{wp.style.display='block';wp.style.transform=`translate(${x}px,-390px) rotate(-12deg)`}
+  // はじめは和紙の色から、おわりは和紙の色へ
+  let v=0;if(t<.3)v=1-t/.3;v=Math.max(v,lin(t,D.total-.45,D.total));$('#veil').style.opacity=v;
+};
+</script></body></html>
