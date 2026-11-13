@@ -14,3 +14,4 @@
 - プレビュー動画は scripts/preview.py（app.json の preview）。ページの時計を止めて1コマずつ撮る。台本は時刻で動くので、ゲームの動きが機種でずれるときは preview.devices で上書き。テロップはゲームの部品にかけない
 - 宣伝の絵と縦の宣伝動画は scripts/promo.py（app.json の promo）。見た目は promo.theme（neon＝案A・paper＝画用紙と机）。promo.extraVideos で別の動画も（sumi＝筆と墨・海外向け）。見出しは promo から入れ、手で打たない。neon を直すときはパチおばの絵が変わらないか、前と後のスクショをくらべる
 - App Store の数字は metrics.yml（毎日）→ `asc.py analytics <app>` → 枝 metrics の metrics/<app>.csv（main には push しない）。知らない報告・列・値は数えずに止める。テストは scripts/test_asc_analytics.py
+- A/B テスト（プロダクトページの最適化）は ios.yml の mode experiment → `asc.py experiment <app> <フォルダ>`（作るだけ。審査への提出と開始は画面で。動いている・終わったテストはさわらない）。テストは scripts/test_asc_experiment.py
