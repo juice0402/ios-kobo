@@ -74,6 +74,7 @@ Actions の「App Store の数字」が毎日 10:17（日本時間）に、App S
 | --- | --- |
 | `APP_HAPTIC(kind)` | 振動。`light` `medium` `heavy` `success` `warning` `error` `select`（同じ kind は 50ms に1回まで） |
 | `APP_SHARE(text)` | 共有メニュー。app.json の `storeUrl` があれば、改行してあとに足す |
+| `APP_REVIEW()` | App Store のレビューのお願い（StoreKit）。同じバージョンでは1回だけ、1.5秒待ってほかの画面が出ていないときに。出すかは Apple が決める（365日に3回まで・TestFlight では出ない） |
 | `APP_GAMECENTER` | Game Center にログインできたら `true`（そのとき window に `app-gamecenter` イベント） |
 | `APP_SCORE(n)` | 最高記録を送る（整数。ログインしていないときは何もしない） |
 | `APP_RANKING()` | ランキング（全員・全期間）を開く |

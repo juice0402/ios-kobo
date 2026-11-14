@@ -1,6 +1,7 @@
 // ゲームから呼べる関数（全部のゲームで共通）。ページの JS からは次の名前で見える：
 //   window.APP_HAPTIC(kind)  … 振動。light / medium / heavy / success / warning / error / select
 //   window.APP_SHARE(text)   … 共有メニュー（Info.plist の GameStoreURL があれば、改行してあとに足す）
+//   window.APP_REVIEW()      … App Store のレビューのお願い（同じバージョンでは1回だけ。1.5秒待ってから）
 //   Game Center（Info.plist に GameLeaderboardID があるアプリだけ）：
 //   window.APP_GAMECENTER    … ログインできたら true（そのとき window に 'app-gamecenter' イベント）
 //   window.APP_SCORE(n)      … 最高記録を送る（整数）
@@ -10,6 +11,7 @@
 import UIKit
 import WebKit
 import GameKit
+import StoreKit
 
 final class GameBridge: NSObject, WKScriptMessageHandler, GKGameCenterControllerDelegate {
     weak var webView: WKWebView?
@@ -23,6 +25,9 @@ final class GameBridge: NSObject, WKScriptMessageHandler, GKGameCenterController
     private var gcReady = false
     private var pendingLogin: UIViewController?
 
+    private static let reviewKey = "appReviewAskedVersion"
+    private var reviewWaiting = false
+
     /// ページの最初（document start）に入れる JS
     static var startScript: String {
         var js = "(function(){var h=window.webkit&&window.webkit.messageHandlers&&window.webkit.messageHandlers.app;if(!h)return;"
@@ -31,6 +36,7 @@ final class GameBridge: NSObject, WKScriptMessageHandler, GKGameCenterController
             + "window.APP_HAPTIC=function(k){k=String(k);if(!Object.prototype.hasOwnProperty.call(K,k))return;"
             + "var t=Date.now();if(last[k]&&t-last[k]<50)return;last[k]=t;post({type:'haptic',kind:k})};"
             + "window.APP_SHARE=function(s){post({type:'share',text:s==null?'':String(s)})};"
+            + "window.APP_REVIEW=function(){post({type:'review'})};"
         if GameSettings.leaderboardID != nil {
             js += "window.APP_GAMECENTER=false;"
                 + "window.APP_SCORE=function(n){n=Math.floor(Number(n));if(window.APP_GAMECENTER!==true||!isFinite(n)||n<0)return;post({type:'score',value:n})};"
@@ -46,6 +52,7 @@ final class GameBridge: NSObject, WKScriptMessageHandler, GKGameCenterController
         case "share": share(body["text"] as? String ?? "")
         case "score": submit((body["value"] as? NSNumber)?.int64Value)
         case "ranking": showRanking()
+        case "review": review()
         default: break
         }
     }
@@ -112,6 +119,26 @@ final class GameBridge: NSObject, WKScriptMessageHandler, GKGameCenterController
             pop.permittedArrowDirections = [.down]
         }
         top.present(sheet, animated: true)
+    }
+
+    // MARK: - レビューのお願い
+
+    /// 同じバージョンでは1回だけ。1.5秒待って、アプリが前に出ていてほかの画面（共有・Game Center・ログイン）が
+    /// 出ていないときだけ出す。出さなかったときは覚えない（次のチャンスに回す）。出すかどうかは最後に Apple が決める
+    private func review() {
+        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? ""
+        guard !reviewWaiting, UserDefaults.standard.string(forKey: Self.reviewKey) != version else { return }
+        reviewWaiting = true
+        Task { @MainActor [weak self] in
+            try? await Task.sleep(nanoseconds: 1_500_000_000)
+            guard let self else { return }
+            self.reviewWaiting = false
+            guard UIApplication.shared.applicationState == .active, self.pendingLogin == nil,
+                  let window = self.webView?.window, let scene = window.windowScene,
+                  window.rootViewController?.presentedViewController == nil else { return }
+            UserDefaults.standard.set(version, forKey: Self.reviewKey)
+            AppStore.requestReview(in: scene)
+        }
     }
 
     // MARK: - Game Center
