@@ -1,0 +1,15 @@
+A tower defense game on a pachinko board. Stop the mischievous ghosts before they reach the bottom. The game text is in Japanese.
+
+Tap a peg on the board to build a tower. Towers shoot nearby ghosts on their own. Balls keep coming from the lower left, and the handle at the lower right changes their strength. When a ball hits a tower, the tower gains experience and levels up.
+
+Get a ball into the center pocket for FEVER. For a short time, tower attack, fire rate and ball power are doubled.
+
+If a ghost reaches the tray at the bottom, you lose life. Each board has 10 waves, with a mid-boss on wave 5 and a boss on wave 10.
+
+Elemental balls such as fire, ice, thunder and poison give their element to the towers and ghosts they hit. Stack different elements to trigger special moves. There are 210 moves in all, and the ones you find are kept in the encyclopedia.
+
+In the shop, spend the coins you earn by defeating ghosts on 23 kinds of balls, 22 kinds of towers and 10 kinds of gimmicks. Put 5 of your balls in the box and take them to the board.
+
+Clear a board to open the next one. Some boards are opened with coins. Each board has its own scenery, ghosts and music. There are 46 kinds of ghosts.
+
+You can play offline. There are no ads and no accounts, and the app collects no data.

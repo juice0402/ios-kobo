@@ -17,6 +17,7 @@ scripts/shots.py         App Store のスクショ（Linux の headless Chrome�
 scripts/promo.py         スクショを宣伝の絵（案A）に包む・縦の宣伝動画（app.json に promo があるアプリ）
 scripts/preview.py       App Store のプレビュー動画（本物の画面の録画＋テロップ。app.json に preview があるアプリ）
 .github/workflows/ios.yml
+.github/workflows/metrics.yml  App Store の数字を毎日集めて枝 metrics へ
 ```
 
 Actions の「iOS アプリ」を手で動かすときの「すること」:
@@ -28,10 +29,42 @@ Actions の「iOS アプリ」を手で動かすときの「すること」:
 | store | ストアの文とスクショを送る（審査には出さない） | いる |
 | review | 審査に出す（文とスクショは送らない。先に store で送る。deliver は文を送ると審査の添付ファイルを消すため） | いる |
 | preview | プレビュー動画と縦の宣伝動画を作って成果物にするだけ（App Store Connect には送らない。Mac も使わない） | いらない |
+| experiment | 宣伝の絵に包んだスクショで、公開中のページの A/B テストを作る（審査への提出と開始はしない。Mac は使わない。下の「A/B テスト」） | いる |
 
 store では、app.json に preview があるアプリはプレビュー動画も作り、文とスクショのあとに `asc.py previews` で送る（前の動画は入れかえ。fastlane deliver はプレビュー動画を送れないため App Store Connect API で）。promo があるアプリは、スクショが宣伝の絵（案A）に包まれてから送られる。
 
 main に push したときと PR のときに、全部のゲームで check が動く。
+
+## 数字を集める（metrics.yml・asc.py analytics）
+
+Actions の「App Store の数字」が毎日 10:17（日本時間）に、App Store Connect の Analytics Reports API で数字を集め、データだけの枝 `metrics` の `metrics/<app>.csv` に足す（main には push しない）。対象は app.json に `storeUrl` があるアプリ。手で動かすときはアプリの名前を入れられる。
+
+列は `date,impressions,product_page_views,first_time_downloads,redownloads`。報告は App Store Discovery and Engagement と App Store Downloads の Standard・DAILY。
+
+| 列 | 数えるもの |
+| --- | --- |
+| impressions | Event が Impression |
+| product_page_views | Event が Page view で、Page Type が Product page |
+| first_time_downloads | Download Type が First-time Download |
+| redownloads | Download Type が Redownload（アップデート・復元は数えない） |
+
+- はじめて動かすと、そのアプリの報告（ONGOING）を頼むだけ。最初の報告は24〜48時間後
+- その日の数字が決まるのは2〜3日あと。同じ日は、いちばん新しい報告の数で入れかえる（前の報告と足さない）
+- 5人・5台より少ない行は Apple が消し、数字にノイズも足されるので、小さいアプリは少なめに出る
+- 知らない値・足りない列・知らない報告の名前があると、勝手に数えずに止める（`asc.py` の `ANALYTICS_REPORTS` を直す）
+- テストは `python3 scripts/test_asc_analytics.py`（にせの App Store Connect。ios.yml の check でも動く）
+
+## A/B テスト（プロダクトページの最適化・asc.py experiment）
+
+いま公開中のページのスクショを、宣伝の絵（app.json の promo。ひらがなバランスは「画用紙と机」）に包んだスクショとくらべる。スクショだけのテストは新しい版がいらない（アイコンを変えるときだけ版が要る）。プレビュー動画はテストに入れない。
+
+1. Actions の「iOS アプリ」を、app にアプリ、すること に experiment をえらんで動かす。スクショを撮って包み、`asc.py experiment` が App Store Connect にテスト「スクショ 画用紙と机」を作る（トリートメント「画用紙と机」1つ・ja と en-US・iPhone 6.9 インチと iPad 13 インチ・半分の人に新しいスクショ）。同じ名前のテストが準備中なら、作らずに中身を入れかえる。審査中・動いている・終わったテストにはさわらない
+2. App Store Connect の「アプリ」→ ひらがなバランス →「プロダクトページの最適化」で、テストを開いてスクショを見て、審査に提出する（ためす案は App Review の承認が要る）
+3. 承認されたら、同じ画面で「テストを開始」。テストは一度に1つ・最長90日。iOS 15 以上の人に出る
+4. 結果は App Store Connect の「アナリティクス」→「プロダクトページの最適化」で見る（インプレッション・コンバージョン率・改善率）。信頼度が90%になるまで待ってから決める。新しいスクショのほうがよければ、その画面で「トリートメントを適用」
+
+- 割合や名前を変えるときは `python3 scripts/asc.py experiment <app> <スクショのフォルダ> --percent 30 --name 名前`（フォルダは fastlane/screenshots/<言語>/<場面>-<機種>.png の並び）
+- テストは `python3 scripts/test_asc_experiment.py`（にせの App Store Connect。ios.yml の check でも動く）
 
 ## ゲームから呼べる関数（shell/Sources/GameBridge.swift）
 
