@@ -9,6 +9,7 @@
 - 署名は App Store Connect API の Admin の鍵だけ（証明書・プロファイルは持たない）。scripts/upload.sh
 - ストアの文は site-principles.md の「文章」の決まりを守る。長さは prepare.py が点検する
 - 絵はプロジェクトの claude/game-art-rule.md（A・C だけアプリに入れる）。ゲームごとに apps/<ゲーム>/ART.md に絵と音の出どころを書く
+- app.json の "origin": "scheme"＝ゲームを file:// ではなく kobo://localhost/ で開く（shell/Sources/GameSchemeHandler.swift・fetch で曲や声を読むゲーム。いまは okashi だけ）。localStorage のセーブの場所が変わるので、出したあとのアプリで切りかえない
 - app.json の zoom "game"＝ゲームが自分で拡大（アプリはページを拡大しない）。skin＝game.extra の skins/<名前> を同梱し、window.APP_SKIN で渡す（prepare.py の inject_skin）
 - App Store Connect の手作業（初回だけ）：アプリの作成・価格（無料）・App のプライバシー（データの収集なし）・年齢区分・審査の連絡先・TestFlight のテスター
 - プレビュー動画は scripts/preview.py（app.json の preview）。ページの時計を止めて1コマずつ撮る。台本は時刻で動くので、ゲームの動きが機種でずれるときは preview.devices で上書き。テロップはゲームの部品にかけない

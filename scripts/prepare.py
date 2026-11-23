@@ -356,6 +356,12 @@ def make_project(app, cfg, proj, build_number):
     leaderboard = leaderboard_id(cfg)
     info["GameLeaderboardID"] = leaderboard
     info["GameStoreURL"] = cfg.get("storeUrl", "")
+    # origin "scheme"：ゲームを file:// ではなく kobo://localhost/ で開く（fetch で曲や声を読むゲーム。shell/Sources/GameSchemeHandler.swift）。
+    # セーブ（localStorage）の場所が変わるので、出したあとのアプリで切りかえない。項目がないアプリは今までどおり file://
+    if cfg.get("origin", "file") == "scheme":
+        info["GameOrigin"] = "scheme"
+    elif cfg.get("origin", "file") != "file":
+        fail(f"app.json の origin は \"file\" か \"scheme\"（いまは {cfg.get('origin')!r}）")
 
     spec = {
         "name": "App",

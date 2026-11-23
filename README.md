@@ -11,6 +11,8 @@ apps/<ゲーム>/icon.png   アイコン（1024px・透明なし）
 apps/<ゲーム>/store/     App Store の文（ja・en-US：名前・サブタイトル・説明・キーワード・宣伝文）
 apps/<ゲーム>/pages.json サポートのページの文
 shell/                   全部のゲームで共通のアプリ（SwiftUI ＋ WKWebView。ゲームは同梱でネット不要）
+                         ふつうは Game/index.html を file:// で開く。app.json に "origin": "scheme" があるアプリだけ
+                         kobo://localhost/ で開く（GameSchemeHandler.swift。fetch で曲や声を読むゲーム用・出したあとは切りかえない）
 scripts/prepare.py       ゲームを取りこみ、フォントを同梱し、オフラインの点検をして Xcode のプロジェクトを作る
 scripts/pages.py         サポートとプライバシーポリシーのページを docs/ に作る（GitHub Pages）
 scripts/shots.py         App Store のスクショ（Linux の headless Chrome）
