@@ -1,0 +1,80 @@
+{
+  "bundleId": "com.asobi-talk.poitto-imo-kojo",
+  "version": "1.0",
+  "name": {
+    "ja": "ぽいっと！いも工場",
+    "en": "Poitto Potato Factory"
+  },
+  "game": {
+    "repo": "juice0402/poitto-imo-kojo",
+    "ref": "64577fd7d5a69a91493254906100c13dc006b591",
+    "file": "index.html"
+  },
+  "languages": [
+    "ja"
+  ],
+  "langGlobals": [],
+  "devices": [
+    "iphone",
+    "ipad"
+  ],
+  "iphoneOrientation": "portrait",
+  "safeArea": "ignore",
+  "fitSize": [
+    430,
+    900
+  ],
+  "background": "#14110E",
+  "category": "public.app-category.casual-games",
+  "store": {
+    "primaryCategory": "GAMES",
+    "subcategories": [
+      "GAMES_CASUAL",
+      "GAMES_SIMULATION"
+    ],
+    "copyright": "2026 Hanpen (asobi-talk.com)",
+    "thirdPartyContent": true
+  },
+  "privacy": {
+    "stored": {
+      "ja": "お金、施設と改良、図鑑、実績、めあて、転生でもらった種、せってい",
+      "en": "your money, facilities and upgrades, the potato encyclopedia, achievements, goals, the seeds from starting over and your settings"
+    }
+  },
+  "screenshots": {
+    "languages": [
+      "ja"
+    ],
+    "scenes": [
+      {
+        "name": "1-title",
+        "wait": 3
+      },
+      {
+        "name": "2-belt",
+        "wait": 2,
+        "js": "(function(){var s=7;Math.random=function(){s=s*16807%2147483647;return(s-1)/2147483646};location.hash='shot=belt'})();"
+      },
+      {
+        "name": "3-fever",
+        "wait": 2,
+        "js": "(function(){var s=11;Math.random=function(){s=s*16807%2147483647;return(s-1)/2147483646};location.hash='shot=fever'})();"
+      },
+      {
+        "name": "4-zukan",
+        "wait": 2,
+        "js": "(function(){var s=5;Math.random=function(){s=s*16807%2147483647;return(s-1)/2147483646};location.hash='shot=zukan'})();"
+      },
+      {
+        "name": "5-card",
+        "wait": 2,
+        "js": "(function(){var s=7;Math.random=function(){s=s*16807%2147483647;return(s-1)/2147483646};location.hash='shot=card:niko'})();"
+      },
+      {
+        "name": "6-shop",
+        "wait": 2,
+        "js": "(function(){var s=7;Math.random=function(){s=s*16807%2147483647;return(s-1)/2147483646};location.hash='shot=shop'})();"
+      }
+    ]
+  }
+}

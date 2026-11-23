@@ -1,0 +1,11 @@
+A pixel-art clicker game about sorting the potatoes that come down a conveyor belt. The game text is in Japanese.
+
+Tap the bad potatoes, such as sprouting ones, to toss them off the belt. Tap the sparkling rare potatoes to catch them. Every good potato that ships earns you money.
+
+Spend your money on part-time workers, air blowers, sorting robots and more, and the factory slowly starts running on its own. Upgrades raise your output, and the factory keeps growing, all the way to a second line and a station in space.
+
+Every rare potato you catch goes into the encyclopedia with its own little story. Very rare potatoes start a fever that boosts your output for a while.
+
+Once you earn one trillion yen, you can close the factory and get seeds. Seeds raise the output of your next factory. You also earn a little while the app is closed.
+
+You can play offline. There are no ads and no accounts, and the app collects no data.

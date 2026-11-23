@@ -1,0 +1,21 @@
+{
+  "privacyDate": "2026-11-24",
+  "about": {
+    "ja": "ベルトコンベアーを流れてくるじゃがいもをタップで選別して、工場を大きくしていくドット絵のクリッカーゲームです。iPhone と iPad で遊べます。",
+    "en": "A pixel-art clicker game: sort the potatoes on the conveyor belt with a tap and grow your factory. Works on iPhone and iPad. The game is in Japanese."
+  },
+  "workshopUrl": "https://asobi-talk.com/kobo/poitto-imo-kojo",
+  "browserVersion": true,
+  "faq": {
+    "ja": [
+      ["音が出ません", "iPhone の消音スイッチがサイレントになっていると鳴りません。ゲームのメニューの音も確かめてください。"],
+      ["セーブはどこに残りますか", "端末の中だけです。ゲームが自動でセーブします。アプリを削除するとセーブも消えます。"],
+      ["ネットにつないでいないと遊べませんか", "つながなくても遊べます。ゲームはすべてアプリの中に入っています。"]
+    ],
+    "en": [
+      ["There is no sound", "If your iPhone is set to Silent, the game stays quiet. Please also check the sound in the game menu."],
+      ["Where is my progress saved?", "Only on your device. The game saves automatically. Deleting the app also deletes the save."],
+      ["Do I need an internet connection?", "No. The whole game is inside the app."]
+    ]
+  }
+}
