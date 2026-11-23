@@ -1,0 +1,63 @@
+{
+  "bundleId": "com.asobi-talk.mazemaze-okashiya",
+  "version": "1.0",
+  "name": {
+    "ja": "まぜまぜおかし屋",
+    "en": "Mazemaze Okashiya"
+  },
+  "game": {
+    "repo": "juice0402/mazemaze-okashiya",
+    "ref": "37c00d4d7147ee1fde77d3eefad7f86a189be8d9",
+    "file": "index.html",
+    "extra": [
+      "assets/art",
+      "assets/bgm",
+      "assets/se",
+      "assets/koe",
+      "assets/font/web",
+      "assets/font/logo.woff2",
+      "assets/font/OFL-ZenMaruGothic.txt",
+      "assets/font/OFL-DelaGothicOne.txt",
+      "assets/font/OFL-MochiyPopOne.txt"
+    ]
+  },
+  "origin": "scheme",
+  "languages": [
+    "ja"
+  ],
+  "langGlobals": [],
+  "devices": [
+    "iphone",
+    "ipad"
+  ],
+  "iphoneOrientation": "portrait",
+  "safeArea": "ignore",
+  "background": "#1B1530",
+  "category": "public.app-category.card-games",
+  "store": {
+    "primaryCategory": "GAMES",
+    "subcategories": [
+      "GAMES_CARD",
+      "GAMES_SIMULATION"
+    ],
+    "copyright": "2026 Hanpen (asobi-talk.com)",
+    "thirdPartyContent": true
+  },
+  "privacy": {
+    "stored": {
+      "ja": "日にち、お店のお金、倉庫の材料、ひらめいたレシピ、お店のグッズ、シェフとビルドの進み具合、せってい",
+      "en": "the day, your shop's money, the ingredients in your storeroom, the recipes you found, your shop goods, your chefs' and builds' progress and your settings"
+    }
+  },
+  "screenshots": {
+    "languages": [
+      "ja"
+    ],
+    "scenes": [
+      {
+        "name": "1-title",
+        "wait": 6
+      }
+    ]
+  }
+}

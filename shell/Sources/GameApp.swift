@@ -44,6 +44,9 @@ enum GameSettings {
 
     static var ignoresSafeArea: Bool { (info["GameSafeArea"] as? String) == "ignore" }
 
+    /// app.json の "origin": "scheme"：ゲームを file:// ではなく kobo://localhost/ で開く（GameSchemeHandler.swift）
+    static var servesFromScheme: Bool { (info["GameOrigin"] as? String) == "scheme" }
+
     /// Game Center のリーダーボードの ID（app.json の gameCenter.leaderboard）。ないアプリは Game Center を使わない
     static var leaderboardID: String? { nonEmpty(info["GameLeaderboardID"]) }
 

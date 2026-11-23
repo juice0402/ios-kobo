@@ -34,7 +34,8 @@ struct GameWebView: UIViewRepresentable {
         // target="_blank" や window.open
         func webView(_ webView: WKWebView, createWebViewWith configuration: WKWebViewConfiguration,
                      for action: WKNavigationAction, windowFeatures: WKWindowFeatures) -> WKWebView? {
-            if let url = action.request.url, url.scheme?.lowercased() != "file" {
+            if let url = action.request.url, let scheme = url.scheme?.lowercased(),
+               scheme != "file", scheme != GameSchemeHandler.scheme {
                 UIApplication.shared.open(url)
             }
             return nil
@@ -85,6 +86,11 @@ final class GameHostView: UIView {
         config.suppressesIncrementalRendering = true
         // iPad でもスマホと同じ組み方にする（パソコン向けの表示だと、画面の幅がずれてタップの位置もずれる）
         config.defaultWebpagePreferences.preferredContentMode = .mobile
+        // origin "scheme" のアプリ：Game/ のファイルを kobo://localhost/ で返す（WKWebView を作る前に登録する）
+        if GameSettings.servesFromScheme, let res = Bundle.main.resourceURL {
+            config.setURLSchemeHandler(GameSchemeHandler(root: res.appendingPathComponent("Game")),
+                                       forURLScheme: GameSchemeHandler.scheme)
+        }
         webView = WKWebView(frame: .zero, configuration: config)
         super.init(frame: .zero)
 
@@ -169,6 +175,14 @@ final class GameHostView: UIView {
               FileManager.default.fileExists(atPath: url.path) else {
             webView.loadHTMLString("<p style='font:20px sans-serif;padding:40px'>Game file not found.</p>", baseURL: nil)
             return
+        }
+        if GameSettings.servesFromScheme {
+            // GameEntry は "Game/index.html"。kobo://localhost/ は Game/ を指すので、先頭の Game/ をとる
+            let rel = GameSettings.entry.hasPrefix("Game/") ? String(GameSettings.entry.dropFirst(5)) : GameSettings.entry
+            if let schemeURL = GameSchemeHandler.url(for: rel) {
+                webView.load(URLRequest(url: schemeURL))
+                return
+            }
         }
         webView.loadFileURL(url, allowingReadAccessTo: url.deletingLastPathComponent())
     }
