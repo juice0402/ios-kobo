@@ -32,6 +32,7 @@ Actions の「iOS アプリ」を手で動かすときの「すること」:
 | review | 審査に出す（文とスクショは送らない。先に store で送る。deliver は文を送ると審査の添付ファイルを消すため） | いる |
 | preview | プレビュー動画と縦の宣伝動画を作って成果物にするだけ（App Store Connect には送らない。Mac も使わない） | いらない |
 | experiment | 宣伝の絵に包んだスクショで、公開中のページの A/B テストを作る（審査への提出と開始はしない。Mac は使わない。下の「A/B テスト」） | いる |
+| attach | 枝 review-media の <app>/ の画面収録などを、直せる版の審査の添付ファイルにする（審査には出さない。Mac は使わない。下の「審査の添付ファイル」） | いる |
 
 store では、app.json に preview があるアプリはプレビュー動画も作り、文とスクショのあとに `asc.py previews` で送る（前の動画は入れかえ。fastlane deliver はプレビュー動画を送れないため App Store Connect API で）。promo があるアプリは、スクショが宣伝の絵（案A）に包まれてから送られる。
 
@@ -67,6 +68,18 @@ Actions の「App Store の数字」が毎日 10:17（日本時間）に、App S
 
 - 割合や名前を変えるときは `python3 scripts/asc.py experiment <app> <スクショのフォルダ> --percent 30 --name 名前`（フォルダは fastlane/screenshots/<言語>/<場面>-<機種>.png の並び）
 - テストは `python3 scripts/test_asc_experiment.py`（にせの App Store Connect。ios.yml の check でも動く）
+
+## 審査の添付ファイル（App Review の画面収録・asc.py attach）
+
+新しいアプリの1本目は「Guideline 2.1 Information Needed」で戻ることがあるので、実機（iPad・最新の iPadOS）の画面収録を審査の添付ファイルに入れる。審査のメモ（目的・あそび方など）と連絡先は、いまも App Store Connect の画面で入れる。
+
+1. 動画（mp4・mov。ほかに png・jpg・pdf も）を、データだけの枝 `review-media` の `<app>/` に置く（main には入れない。公開のリポジトリなので、通知や個人の情報が映っていないものだけ）。大きい動画は H.264 で小さくしてから
+2. Actions の「iOS アプリ」を、app にアプリ、すること に attach をえらんで動かす。`asc.py attach` が、直せる版（app.json の version が先）の「App Review に関する情報」に添付する
+3. そのあと review で審査に出す
+
+- 順番は store → attach → review。store（fastlane deliver）は文を送るとき添付を消すので、store でも枝にファイルがあれば最後に送りなおす
+- 同じ名前の添付は入れかえ、名前と大きさが同じで処理ずみなら送らない。画面で入れたほかの名前の添付はさわらない。審査中・公開中の版には添付できない（止める）
+- テストは `python3 scripts/test_asc_attach.py`（にせの App Store Connect。ios.yml の check でも動く）
 
 ## ゲームから呼べる関数（shell/Sources/GameBridge.swift）
 
