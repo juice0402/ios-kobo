@@ -1,0 +1,81 @@
+{
+  "bundleId": "com.asobi-talk.path-quest",
+  "version": "1.0",
+  "name": {
+    "ja": "PATH QUEST",
+    "en": "PATH QUEST"
+  },
+  "game": {
+    "repo": "juice0402/path-quest",
+    "ref": "c54ce7d9ad2dc474df82397dba8c9d02decec356",
+    "file": "games/path-quest/index.html"
+  },
+  "languages": [
+    "ja"
+  ],
+  "langGlobals": [],
+  "devices": [
+    "iphone",
+    "ipad"
+  ],
+  "iphoneOrientation": "portrait",
+  "safeArea": "ignore",
+  "fitSize": [
+    430,
+    900
+  ],
+  "background": "#F4E7D4",
+  "category": "public.app-category.puzzle-games",
+  "store": {
+    "primaryCategory": "GAMES",
+    "subcategories": [
+      "GAMES_PUZZLE",
+      "GAMES_STRATEGY"
+    ],
+    "copyright": "2026 Hanpen (asobi-talk.com)",
+    "thirdPartyContent": true
+  },
+  "privacy": {
+    "stored": {
+      "ja": "とちゅうの冒険、持ち帰った金貨、強化とおぼえたスキル、記録、音の設定",
+      "en": "your adventure in progress, the gold you brought home, your upgrades and skills, your records and the sound settings"
+    }
+  },
+  "screenshots": {
+    "languages": [
+      "ja"
+    ],
+    "scenes": [
+      {
+        "name": "1-title",
+        "wait": 3,
+        "js": "(function(){var s=7;Math.random=function(){s=s*16807%2147483647;return(s-1)/2147483646};location.hash='shot=title'})();"
+      },
+      {
+        "name": "2-climb",
+        "wait": 4,
+        "js": "(function(){var s=7;Math.random=function(){s=s*16807%2147483647;return(s-1)/2147483646};location.hash='shot=climb'})();"
+      },
+      {
+        "name": "3-foe",
+        "wait": 4,
+        "js": "(function(){var s=7;Math.random=function(){s=s*16807%2147483647;return(s-1)/2147483646};location.hash='shot=foe'})();"
+      },
+      {
+        "name": "4-reward",
+        "wait": 4,
+        "js": "(function(){var s=7;Math.random=function(){s=s*16807%2147483647;return(s-1)/2147483646};location.hash='shot=reward'})();"
+      },
+      {
+        "name": "5-boss",
+        "wait": 4,
+        "js": "(function(){var s=7;Math.random=function(){s=s*16807%2147483647;return(s-1)/2147483646};location.hash='shot=boss'})();"
+      },
+      {
+        "name": "6-shop",
+        "wait": 3,
+        "js": "(function(){var s=7;Math.random=function(){s=s*16807%2147483647;return(s-1)/2147483646};location.hash='shot=shop'})();"
+      }
+    ]
+  }
+}
