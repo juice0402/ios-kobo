@@ -1,0 +1,54 @@
+{
+  "bundleId": "com.asobi-talk.zenbunose-ship",
+  "version": "1.0",
+  "name": {
+    "ja": "ぜんぶのせシップ",
+    "en": "Zenbunose Ship"
+  },
+  "game": {
+    "repo": "juice0402/shoot-game",
+    "ref": "800db5d926c25279f4c05a56056c62c995ba2a50",
+    "file": "index.html"
+  },
+  "languages": [
+    "ja"
+  ],
+  "langGlobals": [],
+  "devices": [
+    "iphone",
+    "ipad"
+  ],
+  "iphoneOrientation": "portrait",
+  "fitSize": [
+    430,
+    900
+  ],
+  "background": "#060716",
+  "category": "public.app-category.action-games",
+  "store": {
+    "primaryCategory": "GAMES",
+    "subcategories": [
+      "GAMES_ACTION",
+      "GAMES_ARCADE"
+    ],
+    "copyright": "2026 Hanpen (asobi-talk.com)",
+    "thirdPartyContent": true
+  },
+  "privacy": {
+    "stored": {
+      "ja": "持っている機体と装備、強化、ステージの進み具合、記録、BGM と効果音のオン・オフ",
+      "en": "the ships and equipment you own, your upgrades, stage progress, records and the music and sound settings"
+    }
+  },
+  "screenshots": {
+    "languages": [
+      "ja"
+    ],
+    "scenes": [
+      {
+        "name": "1-title",
+        "wait": 3
+      }
+    ]
+  }
+}
