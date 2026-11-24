@@ -109,11 +109,21 @@ def support(app, cfg, pg):
 def privacy(app, cfg, pg):
     stored = cfg.get("privacy", {}).get("stored", {})
     date = pg.get("privacyDate", "")
+    if (cfg.get("gameCenter") or {}).get("leaderboard"):   # Game Center のランキングがあるアプリは、スコアを Apple に送ることを書く
+        net_ja = "ゲームは端末の中で動きます。ネットへの通信は、下の Game Center だけです。"
+        net_en = "The game runs on your device. Its only connection to the internet is Game Center, described below."
+        gc_ja = ("<h3>Game Center</h3>\n<p>Game Center にサインインしていると、最高スコアを Apple の Game Center に送り、ランキングにのせます。"
+                 "サインインしていなければ送りません。Game Center での扱いは Apple のプライバシーポリシーに従います。</p>\n")
+        gc_en = ("<h3>Game Center</h3>\n<p>If you are signed in to Game Center, your best score is sent to Apple's Game Center and shown on the leaderboard. "
+                 "Nothing is sent if you are not signed in. Apple's privacy policy applies to Game Center.</p>\n")
+    else:
+        net_ja, net_en = "ゲームは端末の中だけで動き、ネットへの通信はしません。", "The game runs entirely on your device and does not connect to the internet."
+        gc_ja = gc_en = ""
     ja = f"""<section id="ja" lang="ja"><h2>プライバシーポリシー</h2>
-<p>{esc(cfg["name"]["ja"])}（以下「このアプリ」）は、遊ぶ人の個人情報を集めません。アカウントの登録、広告、アクセス解析、トラッキングはありません。ゲームは端末の中だけで動き、ネットへの通信はしません。</p>
+<p>{esc(cfg["name"]["ja"])}（以下「このアプリ」）は、遊ぶ人の個人情報を集めません。アカウントの登録、広告、アクセス解析、トラッキングはありません。{net_ja}</p>
 <h3>端末に保存するもの</h3>
 <p>{esc(stored.get("ja", "ゲームの設定と記録"))}を、この端末の中だけに保存します。外へは送りません。アプリを削除すると消えます。</p>
-<h3>お問い合わせ</h3>
+{gc_ja}<h3>お問い合わせ</h3>
 <p>サポートのページのお問い合わせフォームは Google フォームを使っています。受け取るのは、書いてもらった名前・メールアドレス・内容だけで、どれも書いた分だけです。返事と不具合の直しのためだけに使います。Google フォームでの扱いは Google のプライバシーポリシーに従います。</p>
 <h3>子どもの利用</h3>
 <p>年齢にかかわらず、このアプリが個人情報を集めることはありません。</p>
@@ -121,10 +131,10 @@ def privacy(app, cfg, pg):
 <p>このポリシーを変えるときは、このページでお知らせします。</p>
 <p>運営：{esc(MAKER["ja"])}<br>制定：{esc(date)}</p></section>"""
     en = f"""<section id="en" lang="en"><h2>Privacy Policy</h2>
-<p>{esc(cfg["name"]["en"])} ("the app") does not collect any personal information. There are no accounts, ads, analytics or tracking. The game runs entirely on your device and does not connect to the internet.</p>
+<p>{esc(cfg["name"]["en"])} ("the app") does not collect any personal information. There are no accounts, ads, analytics or tracking. {net_en}</p>
 <h3>Data stored on your device</h3>
 <p>The app saves {esc(stored.get("en", "game settings and records"))} on this device only. This data is never sent anywhere and is removed when you delete the app.</p>
-<h3>Contact</h3>
+{gc_en}<h3>Contact</h3>
 <p>The contact form on the support page uses Google Forms. We receive only what you choose to enter (name, email address and message) and use it only to reply and fix problems. Google's privacy policy applies to Google Forms.</p>
 <h3>Children</h3>
 <p>The app does not collect personal information from anyone, including children.</p>

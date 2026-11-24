@@ -1,0 +1,23 @@
+{
+  "privacyDate": "2026-11-24",
+  "about": {
+    "ja": "追っ手のパトカーを一般車やかべにさそいこんでクラッシュさせながら逃げる、縦スクロールのカーチェイスゲームです。iPhone と iPad で遊べます。",
+    "en": "A vertical-scrolling car chase game: lure the police cars behind you into traffic and walls, crash them and get away. Works on iPhone and iPad. The game is in Japanese."
+  },
+  "workshopUrl": "https://asobi-talk.com/kobo/buttobi-chase",
+  "browserVersion": true,
+  "faq": {
+    "ja": [
+      ["音が出ません", "iPhone の消音スイッチがサイレントになっていると鳴りません。ゲームのせっていの BGM と効果音も確かめてください。"],
+      ["セーブはどこに残りますか", "端末の中だけです。ゲームが自動でセーブします。アプリを削除するとセーブも消えます。"],
+      ["ランキングにスコアがのりません", "Game Center にサインインしていると、走り終わったときに最高スコアがのります。端末の設定の Game Center を確かめてください。"],
+      ["ネットにつないでいないと遊べませんか", "つながなくても遊べます。ゲームはすべてアプリの中に入っています。ランキングだけはネットが必要です。"]
+    ],
+    "en": [
+      ["There is no sound", "If your iPhone is set to Silent, the game stays quiet. Please also check the music and sound effects in the game settings."],
+      ["Where is my progress saved?", "Only on your device. The game saves automatically. Deleting the app also deletes the save."],
+      ["My score is not on the leaderboard", "Your best score is sent when a run ends, if you are signed in to Game Center. Please check Game Center in your device settings."],
+      ["Do I need an internet connection?", "No. The whole game is inside the app. Only the leaderboard needs a connection."]
+    ]
+  }
+}
