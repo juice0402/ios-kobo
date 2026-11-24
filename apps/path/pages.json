@@ -1,0 +1,21 @@
+{
+  "privacyDate": "2026-11-24",
+  "about": {
+    "ja": "積み木で道をつないで、騎士くんをおもちゃの国の上へ進ませるローグライトです。iPhone と iPad で遊べます。",
+    "en": "A roguelite where you lay toy blocks to build a path and lead a wind-up knight up through a land of toys. Works on iPhone and iPad. The game is in Japanese."
+  },
+  "workshopUrl": "https://asobi-talk.com/kobo/path-quest",
+  "browserVersion": true,
+  "faq": {
+    "ja": [
+      ["音が出ません", "iPhone の消音スイッチがサイレントになっていると鳴りません。タイトル画面の右上の音のボタンも確かめてください。"],
+      ["セーブはどこに残りますか", "端末の中だけです。とちゅうの冒険も強化も自動でセーブします。アプリを削除するとセーブも消えます。"],
+      ["ネットにつないでいないと遊べませんか", "つながなくても遊べます。ゲームはすべてアプリの中に入っています。"]
+    ],
+    "en": [
+      ["There is no sound", "If your iPhone is set to Silent, the game stays quiet. Please also check the sound button in the top right corner of the title screen."],
+      ["Where is my progress saved?", "Only on your device. Your adventure in progress and your upgrades are saved automatically. Deleting the app also deletes the save."],
+      ["Do I need an internet connection?", "No. The whole game is inside the app."]
+    ]
+  }
+}
