@@ -16,6 +16,7 @@ struct GameWebView: UIViewRepresentable {
         // 読み終えたら、ゲームから呼べる関数の側に知らせる（Game Center のログインなど）
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
             bridge?.pageDidLoad()
+            webView.scrollView.pinchGestureRecognizer?.isEnabled = false   // 読みこみのあとに WebKit が戻すことがある
         }
 
         // ゲームの中のリンク（クレジットのライセンスなど）は Safari で開き、アプリの画面は替えない
@@ -158,8 +159,21 @@ final class GameHostView: UIView {
         start += GameBridge.startScript
         ucc.addUserScript(WKUserScript(source: start, injectionTime: .atDocumentStart, forMainFrameOnly: true))
 
-        // 長押しのメニュー・文字の選択・タップの灰色を出さない（アプリらしい手ざわり）
-        let css = "html{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}"
+        // ピンチやダブルタップで画面が拡大しないようにする（ゲームの viewport に user-scalable=no がないと、
+        // メニューなどで拡大できてしまった・11/25）。ゲームの viewport の width・viewport-fit などはそのまま。
+        // iPad の拡大（pageZoom・APP_ZOOM）は別のしくみなので変わらない
+        let noZoom = "(function(){function fix(){var m=document.querySelector('meta[name=viewport]');"
+            + "if(!m){m=document.createElement('meta');m.name='viewport';m.content='width=device-width';(document.head||document.documentElement).appendChild(m)}"
+            + "var kv={},keys=[];(m.content||'').split(',').forEach(function(p){var a=p.split('='),k=(a[0]||'').trim().toLowerCase();"
+            + "if(k){if(!(k in kv))keys.push(k);kv[k]=(a[1]||'').trim()}});"
+            + "var s=kv['initial-scale']||'1';['initial-scale','minimum-scale','maximum-scale','user-scalable'].forEach(function(k){if(!(k in kv))keys.push(k)});"
+            + "kv['initial-scale']=s;kv['minimum-scale']=s;kv['maximum-scale']=s;kv['user-scalable']='no';"
+            + "var c=keys.map(function(k){return kv[k]?k+'='+kv[k]:k}).join(',');if(m.content!==c)m.content=c}"
+            + "fix();window.addEventListener('load',fix)})();"
+        ucc.addUserScript(WKUserScript(source: noZoom, injectionTime: .atDocumentEnd, forMainFrameOnly: true))
+
+        // 長押しのメニュー・文字の選択・タップの灰色を出さない（アプリらしい手ざわり）。manipulation＝ダブルタップで拡大しない
+        let css = "html{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;touch-action:manipulation}"
             + "input,textarea,[contenteditable]{-webkit-user-select:text;user-select:text}"
         let addCSS = "(function(){var s=document.createElement('style');s.textContent=\(Self.jsString(css));document.head.appendChild(s)})();"
         ucc.addUserScript(WKUserScript(source: addCSS, injectionTime: .atDocumentEnd, forMainFrameOnly: true))
