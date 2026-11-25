@@ -17,3 +17,4 @@
 - App Store の数字は metrics.yml（毎日）→ `asc.py analytics <app>` → 枝 metrics の metrics/<app>.csv（main には push しない）。知らない報告・列・値は数えずに止める。テストは scripts/test_asc_analytics.py
 - A/B テスト（プロダクトページの最適化）は ios.yml の mode experiment → `asc.py experiment <app> <フォルダ>`（作るだけ。審査への提出と開始は画面で。動いている・終わったテストはさわらない）。テストは scripts/test_asc_experiment.py
 - 審査の添付ファイル（実機の画面収録など）は ios.yml の mode attach → `asc.py attach <app> <フォルダ>`。ファイルはデータだけの枝 review-media の <app>/（main に入れない）。store の deliver は添付を消すので、store も最後に送りなおす。テストは scripts/test_asc_attach.py
+- プロモーション用テキストは ios.yml の mode promo → `asc.py promo <app>`（公開中の版も審査なしで変わる・11/26〜）。テストは scripts/test_asc_promo.py
