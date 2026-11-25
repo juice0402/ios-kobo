@@ -421,6 +421,13 @@ def make_metadata(app, cfg, out):
     (meta / "copyright.txt").write_text(s.get("copyright", "") + "\n", encoding="utf-8")
     (meta / "primary_category.txt").write_text(s.get("primaryCategory", "GAMES") + "\n", encoding="utf-8")
     subs = s.get("subcategories", [])
+    # App Store Connect のゲームのサブカテゴリ（GAMES_ARCADE などはない。11/25 ぜんぶのせシップの store が止まった）
+    games_subs = {"GAMES_ACTION", "GAMES_ADVENTURE", "GAMES_BOARD", "GAMES_CARD", "GAMES_CASINO", "GAMES_CASUAL",
+                  "GAMES_FAMILY", "GAMES_MUSIC", "GAMES_PUZZLE", "GAMES_RACING", "GAMES_ROLE_PLAYING",
+                  "GAMES_SIMULATION", "GAMES_SPORTS", "GAMES_STRATEGY", "GAMES_TRIVIA", "GAMES_WORD"}
+    bad = [x for x in subs if x.startswith("GAMES") and x not in games_subs]
+    if bad:
+        fail(f"store.subcategories に App Store にないサブカテゴリ: {', '.join(bad)}（使えるのは {', '.join(sorted(games_subs))}）")
     for i, key in enumerate(["primary_first_sub_category.txt", "primary_second_sub_category.txt"]):
         if i < len(subs):
             (meta / key).write_text(subs[i] + "\n", encoding="utf-8")
