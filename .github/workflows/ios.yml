@@ -8,6 +8,8 @@ name: iOS アプリ
 #              store でも、app.json に preview があるアプリは動画を作り、文とスクショのあとに送る（前の動画は入れかえ）
 # experiment … 宣伝の絵に包んだスクショで、公開中のページの A/B テスト（プロダクトページの最適化）を作る（Mac は使わない。
 #              審査への提出と開始はしない。準備中の同じ名前のテストは入れかえ）
+# attach     … 枝 review-media の <app>/ の画面収録などを、直せる版の審査の添付ファイルにする（Mac は使わない。
+#              store のあとに動かす。store でも、枝にファイルがあれば最後に送りなおす＝deliver が文を送ると添付が消えるため）
 on:
   workflow_dispatch:
     inputs:
@@ -18,7 +20,7 @@ on:
       mode:
         description: すること
         type: choice
-        options: [check, testflight, store, review, preview, experiment]
+        options: [check, testflight, store, review, preview, experiment, attach]
         default: check
       ref:
         description: ゲームの版（コミットやタグ。空なら app.json のまま）
@@ -68,8 +70,8 @@ jobs:
           for a in apps:
               if not re.fullmatch(r"[a-z0-9][a-z0-9-]*", a) or not Path(f"apps/{a}/app.json").exists():
                   raise SystemExit(f"::error::apps/{a}/app.json がありません")
-          if mode not in ("check", "testflight", "store", "review", "preview", "experiment"):
-              raise SystemExit(f"::error::mode は check / testflight / store / review / preview / experiment")
+          if mode not in ("check", "testflight", "store", "review", "preview", "experiment", "attach"):
+              raise SystemExit(f"::error::mode は check / testflight / store / review / preview / experiment / attach")
           if ref and not re.fullmatch(r"[A-Za-z0-9._/-]+", ref):
               raise SystemExit("::error::ref に使えない文字があります")
           with open(os.environ["GITHUB_OUTPUT"], "a") as f:
@@ -79,7 +81,7 @@ jobs:
 
   shots:
     needs: plan
-    if: needs.plan.outputs.mode != 'testflight'
+    if: needs.plan.outputs.mode != 'testflight' && needs.plan.outputs.mode != 'attach'
     runs-on: ubuntu-latest
     timeout-minutes: 60
     strategy:
@@ -116,6 +118,8 @@ jobs:
         run: python scripts/test_asc_analytics.py
       - name: A/B テストを作る関数のテスト（にせの App Store Connect）
         run: python scripts/test_asc_experiment.py
+      - name: 審査の添付ファイルを送る関数のテスト（にせの App Store Connect）
+        run: python scripts/test_asc_attach.py
       - name: プレビュー動画を作る（app.json に preview があるアプリだけ。preview・store のとき）
         if: env.MODE == 'preview' || env.MODE == 'store'
         # store では、動画が作れなくても文とスクショは送る（このステップが落ちても build に進む）
@@ -145,7 +149,7 @@ jobs:
 
   build:
     needs: [plan, shots]
-    if: always() && needs.plan.result == 'success' && needs.plan.outputs.mode != 'preview' && needs.plan.outputs.mode != 'experiment' && needs.shots.result != 'failure' && needs.shots.result != 'cancelled'
+    if: always() && needs.plan.result == 'success' && needs.plan.outputs.mode != 'preview' && needs.plan.outputs.mode != 'experiment' && needs.plan.outputs.mode != 'attach' && needs.shots.result != 'failure' && needs.shots.result != 'cancelled'
     runs-on: macos-26
     timeout-minutes: 45
     strategy:
@@ -243,6 +247,15 @@ jobs:
         continue-on-error: true
         run: python3 scripts/asc.py previews "build/$APP/previews"
 
+      - name: 審査の添付ファイルを送りなおす（store・枝 review-media にこのアプリのファイルがあるときだけ。失敗しても警告だけ）
+        if: env.MODE == 'store' && steps.asc.outputs.has_app == 'true'
+        continue-on-error: true
+        run: |
+          git fetch -q --depth 1 origin review-media 2>/dev/null || { echo "枝 review-media なし"; exit 0; }
+          mkdir -p build/review
+          git archive FETCH_HEAD "$APP" 2>/dev/null | tar -x -C build/review || { echo "$APP の添付ファイルなし"; exit 0; }
+          python3 scripts/asc.py attach "$APP" "build/review/$APP"
+
   experiment:
     needs: [plan, shots]
     if: needs.plan.outputs.mode == 'experiment'
@@ -279,3 +292,38 @@ jobs:
           path: build/${{ matrix.app }}/fastlane/screenshots
       - name: A/B テストを作る（審査への提出と開始は App Store Connect の画面で）
         run: python scripts/asc.py experiment "$APP" "build/$APP/fastlane/screenshots"
+
+  attach:
+    needs: plan
+    if: needs.plan.outputs.mode == 'attach'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        app: ${{ fromJSON(needs.plan.outputs.apps) }}
+    env:
+      APP: ${{ matrix.app }}
+      ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+      ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+      ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+    steps:
+      - uses: actions/checkout@v5
+      - name: Apple の鍵の確認
+        if: env.ASC_KEY_ID == '' || env.ASC_ISSUER_ID == '' || env.ASC_KEY_P8 == ''
+        run: |
+          echo "::error::Secrets（ASC_KEY_ID・ASC_ISSUER_ID・ASC_KEY_P8）がそろっていません"
+          exit 1
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: 道具を入れる
+        run: pip install -q pyjwt cryptography
+      - name: 枝 review-media からこのアプリのファイルを出す
+        run: |
+          git fetch -q --depth 1 origin review-media || { echo "::error::枝 review-media がありません"; exit 1; }
+          mkdir -p build/review
+          git archive FETCH_HEAD "$APP" | tar -x -C build/review || { echo "::error::枝 review-media に $APP/ がありません"; exit 1; }
+          ls -la "build/review/$APP"
+      - name: 審査の添付ファイルにする（同じ名前は入れかえ・審査への提出はしない）
+        run: python scripts/asc.py attach "$APP" "build/review/$APP"

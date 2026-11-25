@@ -13,6 +13,8 @@
                                     → アプリ A の公開中のページに、D（fastlane/screenshots と同じ並び）のスクショで
                                       プロダクトページの最適化のテストを作る（準備中の同じ名前のテストは入れかえ。
                                       審査への提出と開始はしない。BUNDLE_ID はいらない）
+  python3 scripts/asc.py attach A D → D（枝 review-media の A/）の画面収録などを、アプリ A の直せる版の
+                                      審査の添付ファイルにする（同じ名前は入れかえ。BUNDLE_ID はいらない）
 
 環境変数: ASC_KEY_ID, ASC_ISSUER_ID, ASC_KEY_P8, BUNDLE_ID, APP_NAME_EN, CONTENT_RIGHTS（空でもよい。--game-center のときは LEADERBOARD_ID も）
 """
@@ -256,6 +258,107 @@ def send_previews(folder):
         except (ApiError, OSError, ValueError, KeyError, TypeError) as e:
             print(f"::warning::プレビュー動画 {rel} を送れませんでした（App Store Connect の画面で入れてください）: {e}")
     print("::notice::プレビュー動画は App Store Connect で処理が終わるまで（数分〜）「処理中」になる")
+    return sent
+
+
+# ---------------------------------------------------------------- 審査の添付ファイル（App Review の画面収録など）
+# ファイルは main に入れず、枝 review-media の <app>/ に置く（ios.yml の mode attach が build/review/<app> に出す）。
+# 同じ名前の添付は入れかえ、名前と大きさが同じで処理ずみなら送らない（store のあとに何度動かしても同じ）。
+# 画面で入れたほかの名前の添付はさわらない。審査中の版は直せないので止める。
+ATTACH_TYPES = {".mp4", ".mov", ".m4v", ".png", ".jpg", ".jpeg", ".pdf"}
+
+
+def attach_files(folder):
+    if not os.path.isdir(folder):
+        return []
+    return sorted(os.path.join(folder, n) for n in os.listdir(folder)
+                  if os.path.splitext(n)[1].lower() in ATTACH_TYPES and not n.startswith("."))
+
+
+def review_version(app):
+    """(アプリ, 直せる版) を返す。app.json の version と同じ版を先に、なければ直せる版のどれか"""
+    with open(f"apps/{app}/app.json", encoding="utf-8") as f:
+        conf = json.load(f)
+    bundle = conf["bundleId"]
+    q = urllib.parse.urlencode({"filter[bundleId]": bundle})
+    apps = [d for d in call("GET", f"/apps?{q}").get("data", []) if d["attributes"]["bundleId"] == bundle]
+    if not apps:
+        sys.exit(f"::error::App Store Connect にアプリ {bundle} がありません（先に「新規 App」）")
+    versions = call("GET", f"/apps/{apps[0]['id']}/appStoreVersions?filter[platform]=IOS&limit=20").get("data", [])
+    editable = [v for v in versions if v["attributes"].get("appStoreState") in EDITABLE]
+    ver = next((v for v in editable if v["attributes"].get("versionString") == conf.get("version")), None) or \
+        (editable[0] if editable else None)
+    if not ver:
+        states = "・".join(f"{v['attributes'].get('versionString')} {v['attributes'].get('appStoreState')}" for v in versions[:3])
+        sys.exit(f"::error::添付できる版がありません（審査中・公開中の版は直せない。いま：{states}）")
+    return apps[0], ver
+
+
+def review_detail(ver_id):
+    """版の「App Review に関する情報」の id（なければ作る。連絡先は画面で入れる）"""
+    try:
+        d = call("GET", f"/appStoreVersions/{ver_id}/appStoreReviewDetail", soft=True).get("data")
+    except ApiError as e:
+        if e.code != 404:
+            sys.exit(f"::error::App Review に関する情報を読めませんでした: {e}")
+        d = None
+    if d:
+        return d["id"]
+    made = call("POST", "/appStoreReviewDetails", {"data": {"type": "appStoreReviewDetails", "attributes": {},
+                "relationships": {"appStoreVersion": {"data": {"type": "appStoreVersions", "id": ver_id}}}}})
+    return made["data"]["id"]
+
+
+def upload_attachment(detail_id, path, wait=120):
+    import hashlib
+    with open(path, "rb") as f:
+        data = f.read()
+    made = call("POST", "/appStoreReviewAttachments", {"data": {"type": "appStoreReviewAttachments", "attributes": {
+        "fileName": os.path.basename(path), "fileSize": len(data)},
+        "relationships": {"appStoreReviewDetail": {"data": {"type": "appStoreReviewDetails", "id": detail_id}}}}})["data"]
+    for op in made["attributes"].get("uploadOperations") or []:
+        put_bytes(op, data)
+    call("PATCH", f"/appStoreReviewAttachments/{made['id']}", {"data": {"type": "appStoreReviewAttachments", "id": made["id"],
+         "attributes": {"uploaded": True, "sourceFileChecksum": hashlib.md5(data).hexdigest()}}})
+    state = ""
+    for _ in range(max(1, wait // 10)):
+        got = call("GET", f"/appStoreReviewAttachments/{made['id']}", soft=True).get("data", {})
+        st = (got.get("attributes", {}).get("assetDeliveryState") or {})
+        state = st.get("state", "")
+        if state == "FAILED":
+            sys.exit(f"::error::{os.path.basename(path)} の処理に失敗しました: {st.get('errors')}")
+        if state == "COMPLETE" or not wait:
+            break
+        time.sleep(10)
+    return made["id"], state
+
+
+def attach(app, folder, wait=120):
+    """folder のファイルを、直せる版の審査の添付ファイルにする。送った数を返す"""
+    files = attach_files(folder)
+    if not files:
+        print(f"::warning::{folder} に添付するファイルがありません（{'・'.join(sorted(ATTACH_TYPES))}）")
+        return 0
+    _, ver = review_version(app)
+    detail = review_detail(ver["id"])
+    old = call("GET", f"/appStoreReviewDetails/{detail}/appStoreReviewAttachments?limit=50").get("data", [])
+    sent = 0
+    for path in files:
+        name, size = os.path.basename(path), os.path.getsize(path)
+        same = [o for o in old if o["attributes"].get("fileName") == name]
+        if any(o["attributes"].get("fileSize") == size and
+               (o["attributes"].get("assetDeliveryState") or {}).get("state") == "COMPLETE" for o in same):
+            print(f"{name}: 同じものが添付ずみ（送らない）")
+            continue
+        new_id, state = upload_attachment(detail, path, wait)
+        for o in same:   # 新しいのが入ってから前のを消す
+            call("DELETE", f"/appStoreReviewAttachments/{o['id']}", soft=True)
+        print(f"{name}（{size / 1e6:.1f}MB）→ 版 {ver['attributes'].get('versionString')} の審査の添付"
+              f"（{state or '処理中'}{'・前の同じ名前は入れかえ' if same else ''}）")
+        sent += 1
+    others = [o["attributes"].get("fileName") for o in old if o["attributes"].get("fileName") not in {os.path.basename(p) for p in files}]
+    if others:
+        print(f"::notice::ほかの添付も残っています（さわっていない）: {'・'.join(others)}")
     return sent
 
 
@@ -551,6 +654,8 @@ if __name__ == "__main__":
         previews(sys.argv[2])
     elif len(sys.argv) >= 3 and sys.argv[1] == "analytics":
         analytics(sys.argv[2])
+    elif len(sys.argv) >= 4 and sys.argv[1] == "attach":
+        attach(sys.argv[2], sys.argv[3])
     elif len(sys.argv) >= 4 and sys.argv[1] == "experiment":
         import argparse
         a = argparse.ArgumentParser(prog="asc.py experiment")
