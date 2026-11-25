@@ -1,0 +1,79 @@
+{
+  "bundleId": "com.asobi-talk.zenbunose-ship",
+  "version": "1.0",
+  "name": {
+    "ja": "ぜんぶのせシップ",
+    "en": "Zenbunose Ship"
+  },
+  "game": {
+    "repo": "juice0402/shoot-game",
+    "ref": "0995a0a06e2f7c8cf03487240ad2e4d37d998a29",
+    "file": "index.html"
+  },
+  "languages": [
+    "ja"
+  ],
+  "langGlobals": [],
+  "devices": [
+    "iphone",
+    "ipad"
+  ],
+  "iphoneOrientation": "portrait",
+  "fitSize": [
+    430,
+    900
+  ],
+  "background": "#060716",
+  "category": "public.app-category.action-games",
+  "store": {
+    "primaryCategory": "GAMES",
+    "subcategories": [
+      "GAMES_ACTION",
+      "GAMES_CASUAL"
+    ],
+    "copyright": "2026 Hanpen (asobi-talk.com)",
+    "thirdPartyContent": true
+  },
+  "privacy": {
+    "stored": {
+      "ja": "持っている機体と装備、強化、ステージの進み具合、記録、BGM と効果音のオン・オフ",
+      "en": "the ships and equipment you own, your upgrades, stage progress, records and the music and sound settings"
+    }
+  },
+  "screenshots": {
+    "languages": [
+      "ja"
+    ],
+    "scenes": [
+      {
+        "name": "1-title",
+        "wait": 3
+      },
+      {
+        "name": "2-battle",
+        "wait": 3,
+        "js": "(function(){var s=7;Math.random=function(){s=s*16807%2147483647;return(s-1)/2147483646};location.hash='shot=battle'})();"
+      },
+      {
+        "name": "3-levelup",
+        "wait": 3,
+        "js": "(function(){var s=7;Math.random=function(){s=s*16807%2147483647;return(s-1)/2147483646};location.hash='shot=levelup'})();"
+      },
+      {
+        "name": "4-boss",
+        "wait": 3,
+        "js": "(function(){var s=7;Math.random=function(){s=s*16807%2147483647;return(s-1)/2147483646};location.hash='shot=boss'})();"
+      },
+      {
+        "name": "5-hangar",
+        "wait": 3,
+        "js": "(function(){var s=7;Math.random=function(){s=s*16807%2147483647;return(s-1)/2147483646};location.hash='shot=hangar'})();"
+      },
+      {
+        "name": "6-shop",
+        "wait": 3,
+        "js": "(function(){var s=7;Math.random=function(){s=s*16807%2147483647;return(s-1)/2147483646};location.hash='shot=shop'})();"
+      }
+    ]
+  }
+}

@@ -1,7 +1,7 @@
 # 開発メモ（ios-kobo）
 
 - 中身と使い方は README.md。ゲームの HTML はここに置かず、ビルドのたびに app.json の game.repo / game.ref から取る
-- shell/ は全部のゲームで共通。ゲームごとの違いは app.json → Info.plist の Game〜 の値で渡す（GameEntry・GameLangGlobals・GameSafeArea・GameFitSize）
+- shell/ は全部のゲームで共通。ゲームごとの違いは app.json → Info.plist の Game〜 の値で渡す（GameEntry・GameLangGlobals・GameSafeArea・GameFitSize）。ピンチ・ダブルタップの拡大は shell が止める（viewport に user-scalable=no を足す・GameWebView.swift）
 - アプリがゲームに渡すもの：`window.APP_LANGS`（端末の言語）・`APP_PLATFORM='ios'`・`APP_ZOOM`（iPad で拡大した倍率）。langGlobals の名前にも APP_LANGS を入れる
 - ゲームから呼べる関数（GameBridge.swift・README の表）：`APP_HAPTIC(kind)`・`APP_SHARE(text)`・`APP_REVIEW()`（レビューのお願い。同じバージョンで1回・何かをやりとげたあとに呼ぶ）・Game Center のアプリだけ `APP_GAMECENTER`・`APP_SCORE(n)`・`APP_RANKING()`。app.json の `gameCenter.leaderboard` → GameLeaderboardID と entitlements、`storeUrl` → GameStoreURL。署名なしの組み立てには entitlements が入らないので upload.sh が ad-hoc で入れる
 - スクショの台本（app.json の screenshots.scenes の js）はページの中で動く。ゲームの中の変数は見えない前提で、ボタンの click とキャンバスへの PointerEvent で動かす。直したら headless の Chrome で先に試す
@@ -9,9 +9,11 @@
 - 署名は App Store Connect API の Admin の鍵だけ（証明書・プロファイルは持たない）。scripts/upload.sh
 - ストアの文は site-principles.md の「文章」の決まりを守る。長さは prepare.py が点検する
 - 絵はプロジェクトの claude/game-art-rule.md（A・C だけアプリに入れる）。ゲームごとに apps/<ゲーム>/ART.md に絵と音の出どころを書く
+- app.json の "origin": "scheme"＝ゲームを file:// ではなく kobo://localhost/ で開く（shell/Sources/GameSchemeHandler.swift・fetch で曲や声を読むゲーム。いまは okashi だけ）。localStorage のセーブの場所が変わるので、出したあとのアプリで切りかえない
 - app.json の zoom "game"＝ゲームが自分で拡大（アプリはページを拡大しない）。skin＝game.extra の skins/<名前> を同梱し、window.APP_SKIN で渡す（prepare.py の inject_skin）
 - App Store Connect の手作業（初回だけ）：アプリの作成・価格（無料）・App のプライバシー（データの収集なし）・年齢区分・審査の連絡先・TestFlight のテスター
 - プレビュー動画は scripts/preview.py（app.json の preview）。ページの時計を止めて1コマずつ撮る。台本は時刻で動くので、ゲームの動きが機種でずれるときは preview.devices で上書き。テロップはゲームの部品にかけない
 - 宣伝の絵と縦の宣伝動画は scripts/promo.py（app.json の promo）。見た目は promo.theme（neon＝案A・paper＝画用紙と机）。promo.extraVideos で別の動画も（sumi＝筆と墨・海外向け）。見出しは promo から入れ、手で打たない。neon を直すときはパチおばの絵が変わらないか、前と後のスクショをくらべる
 - App Store の数字は metrics.yml（毎日）→ `asc.py analytics <app>` → 枝 metrics の metrics/<app>.csv（main には push しない）。知らない報告・列・値は数えずに止める。テストは scripts/test_asc_analytics.py
 - A/B テスト（プロダクトページの最適化）は ios.yml の mode experiment → `asc.py experiment <app> <フォルダ>`（作るだけ。審査への提出と開始は画面で。動いている・終わったテストはさわらない）。テストは scripts/test_asc_experiment.py
+- 審査の添付ファイル（実機の画面収録など）は ios.yml の mode attach → `asc.py attach <app> <フォルダ>`。ファイルはデータだけの枝 review-media の <app>/（main に入れない）。store の deliver は添付を消すので、store も最後に送りなおす。テストは scripts/test_asc_attach.py

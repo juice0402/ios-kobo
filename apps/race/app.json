@@ -1,0 +1,83 @@
+{
+  "bundleId": "com.asobi-talk.buttobi-chase",
+  "version": "1.0",
+  "name": {
+    "ja": "ぶっとびチェイス",
+    "en": "Buttobi Chase"
+  },
+  "game": {
+    "repo": "juice0402/buttobi-chase",
+    "ref": "21ea0eb9e825bf942a90767b4516d4d57fbcce5a",
+    "file": "index.html"
+  },
+  "languages": [
+    "ja"
+  ],
+  "langGlobals": [],
+  "devices": [
+    "iphone",
+    "ipad"
+  ],
+  "iphoneOrientation": "portrait",
+  "safeArea": "ignore",
+  "gameCenter": {
+    "leaderboard": "buttobi_chase_best"
+  },
+  "fitSize": [
+    430,
+    900
+  ],
+  "background": "#17324D",
+  "category": "public.app-category.racing-games",
+  "store": {
+    "primaryCategory": "GAMES",
+    "subcategories": [
+      "GAMES_RACING",
+      "GAMES_ACTION"
+    ],
+    "copyright": "2026 Hanpen (asobi-talk.com)",
+    "thirdPartyContent": true
+  },
+  "privacy": {
+    "stored": {
+      "ja": "コイン、持っている車と強化、街の進み具合とランク、ミッション、称号、最高スコア、音のオン・オフ",
+      "en": "your coins, the cars you own and their upgrades, your city progress and ranks, missions, titles, your best score and the sound settings"
+    }
+  },
+  "screenshots": {
+    "languages": [
+      "ja"
+    ],
+    "scenes": [
+      {
+        "name": "1-title",
+        "wait": 4
+      },
+      {
+        "name": "2-chase",
+        "wait": 4,
+        "js": "(function(){var s=7;Math.random=function(){s=s*16807%2147483647;return(s-1)/2147483646};location.hash='shot=run:0:55:1'})();"
+      },
+      {
+        "name": "3-nitro",
+        "wait": 4,
+        "js": "(function(){var s=7;Math.random=function(){s=s*16807%2147483647;return(s-1)/2147483646};location.hash='shot=nitro:1:30:1'})();"
+      },
+      {
+        "name": "4-boss",
+        "wait": 4,
+        "js": "(function(){var s=7;Math.random=function(){s=s*16807%2147483647;return(s-1)/2147483646};location.hash='shot=boss:2:3:3'})();"
+      },
+      {
+        "name": "5-garage",
+        "wait": 3,
+        "js": "(function(){var s=7;Math.random=function(){s=s*16807%2147483647;return(s-1)/2147483646};location.hash='shot=garage:0'})();"
+      },
+      {
+        "name": "6-result",
+        "wait": 4,
+        "js": "(function(){var s=7;Math.random=function(){s=s*16807%2147483647;return(s-1)/2147483646};location.hash='shot=result:1:0:14'})();"
+      }
+    ]
+  }
+}

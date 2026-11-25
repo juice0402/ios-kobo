@@ -356,6 +356,12 @@ def make_project(app, cfg, proj, build_number):
     leaderboard = leaderboard_id(cfg)
     info["GameLeaderboardID"] = leaderboard
     info["GameStoreURL"] = cfg.get("storeUrl", "")
+    # origin "scheme"：ゲームを file:// ではなく kobo://localhost/ で開く（fetch で曲や声を読むゲーム。shell/Sources/GameSchemeHandler.swift）。
+    # セーブ（localStorage）の場所が変わるので、出したあとのアプリで切りかえない。項目がないアプリは今までどおり file://
+    if cfg.get("origin", "file") == "scheme":
+        info["GameOrigin"] = "scheme"
+    elif cfg.get("origin", "file") != "file":
+        fail(f"app.json の origin は \"file\" か \"scheme\"（いまは {cfg.get('origin')!r}）")
 
     spec = {
         "name": "App",
@@ -415,6 +421,13 @@ def make_metadata(app, cfg, out):
     (meta / "copyright.txt").write_text(s.get("copyright", "") + "\n", encoding="utf-8")
     (meta / "primary_category.txt").write_text(s.get("primaryCategory", "GAMES") + "\n", encoding="utf-8")
     subs = s.get("subcategories", [])
+    # App Store Connect のゲームのサブカテゴリ（GAMES_ARCADE などはない。11/25 ぜんぶのせシップの store が止まった）
+    games_subs = {"GAMES_ACTION", "GAMES_ADVENTURE", "GAMES_BOARD", "GAMES_CARD", "GAMES_CASINO", "GAMES_CASUAL",
+                  "GAMES_FAMILY", "GAMES_MUSIC", "GAMES_PUZZLE", "GAMES_RACING", "GAMES_ROLE_PLAYING",
+                  "GAMES_SIMULATION", "GAMES_SPORTS", "GAMES_STRATEGY", "GAMES_TRIVIA", "GAMES_WORD"}
+    bad = [x for x in subs if x.startswith("GAMES") and x not in games_subs]
+    if bad:
+        fail(f"store.subcategories に App Store にないサブカテゴリ: {', '.join(bad)}（使えるのは {', '.join(sorted(games_subs))}）")
     for i, key in enumerate(["primary_first_sub_category.txt", "primary_second_sub_category.txt"]):
         if i < len(subs):
             (meta / key).write_text(subs[i] + "\n", encoding="utf-8")
