@@ -1,6 +1,6 @@
 {
   "bundleId": "com.asobi-talk.hiragana-balance",
-  "version": "1.0",
+  "version": "1.1",
   "storeUrl": "https://apps.apple.com/app/id6831495262",
   "name": {
     "ja": "ひらがなバランス",
@@ -8,7 +8,7 @@
   },
   "game": {
     "repo": "juice0402/hiragana-balance",
-    "ref": "9d22139bea18606f4ddbf40c58912f2803ec9389",
+    "ref": "4f8c72247cb18f408ef488716cbd27f6def7825f",
     "file": "index.html",
     "extra": ["skins/kobo"]
   },
