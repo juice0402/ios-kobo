@@ -9,6 +9,8 @@
   3. ネットにつなぐ読み込みが残っていないか点検する（残っていたら止める）
   4. shell/ の Swift と、アイコン・色・言語・Info.plist から XcodeGen の設定を作る
   5. fastlane（deliver）用のストアの文を build/<app>/fastlane/metadata に並べる
+  6. ゲームに docs/kobo/gamecenter.json（Game Center のランキングと実績）があれば点検して build/<app>/gamecenter/ に写す
+     （形と点検は scripts/gamecenter.py。gamecenter.json があれば app.json に gameCenter がなくても Game Center を有効にする）
 """
 import argparse
 import json
@@ -271,6 +273,45 @@ def leaderboard_id(cfg):
     return lb
 
 
+GAMECENTER_SRC = "docs/kobo/gamecenter.json"   # ゲームのリポジトリの中の場所（claude/gamecenter-spec.md）
+
+
+def game_center(app, cfg, out):
+    """Game Center の設定をまとめる。{"leaderboard": ID か "", "enabled": bool, "file": 写した gamecenter.json か ""}
+    ゲームに docs/kobo/gamecenter.json があれば点検して build/<app>/gamecenter/ に写す（バッジの絵も同じ相対パスで）。
+    app.json の gameCenter.leaderboard だけのアプリ（race・hiragana-balance の前の形）も今までどおり動く"""
+    sys.path.insert(0, str(ROOT / "scripts"))
+    import gamecenter
+    app_lb = leaderboard_id(cfg)
+    src = ROOT / "build" / "_src" / app / GAMECENTER_SRC
+    if not src.exists():
+        return {"leaderboard": app_lb, "enabled": bool(app_lb), "file": "", "achievements": 0}
+    try:
+        gc = gamecenter.load(src, app_lb)
+    except gamecenter.GameCenterError as e:
+        for p in e.problems:
+            print(f"::error::{GAMECENTER_SRC}: {p}", flush=True)
+        fail(f"ゲームの {GAMECENTER_SRC} にまちがいがあります（python3 scripts/gamecenter.py <パス> で同じ点検）")
+    dest = out / "gamecenter"
+    dest.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(src, dest / "gamecenter.json")
+    for a in gc["achievements"]:
+        rel = a["image"].relative_to(src.parent)
+        (dest / rel).parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(a["image"], dest / rel)
+    # プライバシーポリシー（docs/<app>/privacy.html・scripts/pages.py が作る）に Game Center の節があるか
+    pol = ROOT / "docs" / app / "privacy.html"
+    if pol.exists():
+        text = pol.read_text(encoding="utf-8")
+        if "Game Center" not in text or (gc["achievements"] and "achievements" not in text):
+            fail(f"docs/{app}/privacy.html に Game Center の{'実績の' if gc['achievements'] else ''}文がありません"
+                 "（python3 scripts/pages.py で作りなおしてコミット）")
+    say(gamecenter.summary(gc))
+    lb = (gc["leaderboard"] or {}).get("id") or app_lb
+    return {"leaderboard": lb, "enabled": True, "file": str((dest / "gamecenter.json").relative_to(ROOT)),
+            "achievements": len(gc["achievements"])}
+
+
 def content_rights(cfg):
     """app.json の store.thirdPartyContent → App Store Connect の「コンテンツの権利」（なければ空＝送らない）"""
     v = (cfg.get("store") or {}).get("thirdPartyContent")
@@ -281,7 +322,7 @@ def content_rights(cfg):
     return "USES_THIRD_PARTY_CONTENT" if v else "DOES_NOT_USE_THIRD_PARTY_CONTENT"
 
 
-def make_project(app, cfg, proj, build_number):
+def make_project(app, cfg, proj, build_number, gc=None):
     shutil.copytree(ROOT / "shell" / "Sources", proj / "Sources")
     shutil.copy2(ROOT / "shell" / "PrivacyInfo.xcprivacy", proj / "PrivacyInfo.xcprivacy")
 
@@ -352,9 +393,11 @@ def make_project(app, cfg, proj, build_number):
     # zoom "game"：ゲームが自分で大きさを合わせる（APP_PLATFORM='ios' を見る）。アプリはページを拡大しない
     if cfg.get("fitSize") and cfg.get("zoom", "page") != "game":
         info["GameFitSize"] = cfg["fitSize"]
-    # ゲームから呼べる関数（shell/Sources/GameBridge.swift）：Game Center のリーダーボードと、共有の文に足すストアの URL
-    leaderboard = leaderboard_id(cfg)
-    info["GameLeaderboardID"] = leaderboard
+    # ゲームから呼べる関数（shell/Sources/GameBridge.swift）：Game Center のリーダーボードと、共有の文に足すストアの URL。
+    # GameCenter＝Game Center を使う（ランキングがなく実績だけのアプリも。APP_ACHIEVE・APP_ACHIEVEMENTS）
+    gc = gc or {"leaderboard": leaderboard_id(cfg), "enabled": bool(leaderboard_id(cfg))}
+    info["GameLeaderboardID"] = gc["leaderboard"]
+    info["GameCenter"] = gc["enabled"]
     info["GameStoreURL"] = cfg.get("storeUrl", "")
     # origin "scheme"：ゲームを file:// ではなく kobo://localhost/ で開く（fetch で曲や声を読むゲーム。shell/Sources/GameSchemeHandler.swift）。
     # セーブ（localStorage）の場所が変わるので、出したあとのアプリで切りかえない。項目がないアプリは今までどおり file://
@@ -379,7 +422,7 @@ def make_project(app, cfg, proj, build_number):
                             {"path": "PrivacyInfo.xcprivacy", "buildPhase": "resources"}],
                 "info": {"path": "Info.plist", "properties": info},
                 **({"entitlements": {"path": "App.entitlements",
-                                     "properties": {"com.apple.developer.game-center": True}}} if leaderboard else {}),
+                                     "properties": {"com.apple.developer.game-center": True}}} if gc["enabled"] else {}),
                 "settings": {"base": {
                     "PRODUCT_BUNDLE_IDENTIFIER": bundle_id, "PRODUCT_NAME": product,
                     "TARGETED_DEVICE_FAMILY": family, "ASSETCATALOG_COMPILER_APPICON_NAME": "AppIcon",
@@ -462,12 +505,13 @@ def main():
     html = inject_skin(html, cfg, game_dir)
     index.write_text(html, encoding="utf-8")
     offline_check(game_dir, cfg.get("allowOnline", []))
-    product = make_project(a.app, cfg, proj, a.build_number)
+    gc = game_center(a.app, cfg, out)
+    product = make_project(a.app, cfg, proj, a.build_number, gc)
     make_metadata(a.app, cfg, out)
 
     env = {"BUNDLE_ID": cfg["bundleId"], "APP_VERSION": cfg["version"], "PRODUCT_NAME": product,
-           "GAME_SHA": sha, "APP_NAME_EN": cfg["name"]["en"], "LEADERBOARD_ID": leaderboard_id(cfg),
-           "CONTENT_RIGHTS": content_rights(cfg)}
+           "GAME_SHA": sha, "APP_NAME_EN": cfg["name"]["en"], "LEADERBOARD_ID": gc["leaderboard"],
+           "GAMECENTER_JSON": gc["file"], "CONTENT_RIGHTS": content_rights(cfg)}
     (out / "app.env").write_text("".join(f"{k}={shlex.quote(v)}\n" for k, v in env.items()), encoding="utf-8")
     if os.environ.get("GITHUB_ENV"):
         with open(os.environ["GITHUB_ENV"], "a", encoding="utf-8") as f:

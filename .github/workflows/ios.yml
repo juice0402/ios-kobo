@@ -120,6 +120,8 @@ jobs:
         run: python scripts/test_asc_experiment.py
       - name: 審査の添付ファイルを送る関数のテスト（にせの App Store Connect）
         run: python scripts/test_asc_attach.py
+      - name: Game Center（gamecenter.json の点検・実績を作る・審査の部品）のテスト（にせの App Store Connect）
+        run: python scripts/test_gamecenter.py
       - name: プレビュー動画を作る（app.json に preview があるアプリだけ。preview・store のとき）
         if: env.MODE == 'preview' || env.MODE == 'store'
         # store では、動画が作れなくても文とスクショは送る（このステップが落ちても build に進む）
@@ -211,22 +213,29 @@ jobs:
           name: previews-${{ matrix.app }}
           path: build/${{ matrix.app }}/previews
 
-      - name: バンドル ID とアプリの確認（testflight で app.json に gameCenter があれば Game Center も用意）
+      - name: バンドル ID とアプリの確認（testflight で Game Center を使うアプリは、ランキング・実績・バッジの絵も用意）
         id: asc
         if: env.MODE != 'check'
         run: |
-          GC=""; [ "$MODE" = testflight ] && [ -n "${LEADERBOARD_ID:-}" ] && GC="--game-center"
+          GC=""; [ "$MODE" = testflight ] && [ -n "${LEADERBOARD_ID:-}${GAMECENTER_JSON:-}" ] && GC="--game-center"
           python3 scripts/asc.py setup $GC
+
+      - name: 版といっしょに出す Game Center の部品があるか（review・Game Center を使うアプリだけ。あれば審査は submit-review が出す）
+        id: gc
+        if: env.MODE == 'review' && steps.asc.outputs.has_app == 'true' && (env.LEADERBOARD_ID != '' || env.GAMECENTER_JSON != '')
+        run: python3 scripts/asc.py gc-pending "$APP"
 
       - name: TestFlight に送る
         if: env.MODE == 'testflight' && steps.asc.outputs.has_app == 'true'
         run: bash scripts/upload.sh "$APP" "$BUILD_NO"
 
-      - name: ストアの文とスクショを送る（review なら審査に出す）
+      - name: ストアの文とスクショを送る（review なら審査に出す。Game Center の部品があるときは次のステップが出す）
         if: (env.MODE == 'store' || env.MODE == 'review') && steps.asc.outputs.has_app == 'true'
+        env:
+          GC_PENDING: ${{ steps.gc.outputs.gc_pending }}
         run: |
           python3 scripts/asc.py key-json "$RUNNER_TEMP/asc_key.json"
-          SUBMIT=false; [ "$MODE" = review ] && SUBMIT=true
+          SUBMIT=false; [ "$MODE" = review ] && [ "$GC_PENDING" != true ] && SUBMIT=true
           # review は文とスクショを送らない（先に store で送る）。deliver は文を送るとき、審査の添付ファイル（画面収録など）を消すため（11/10 パチおばで動画が消えた）
           SKIP=""; [ "$MODE" = review ] && SKIP="--skip_metadata true --skip_screenshots true"
           # コンテンツの権利（app.json の store.thirdPartyContent。asc.py setup でも送っている）
@@ -241,6 +250,10 @@ jobs:
             --skip_binary_upload true --overwrite_screenshots true --force true \
             --run_precheck_before_submit false --automatic_release false \
             --submit_for_review "$SUBMIT" $SKIP --submission_information "{\"add_id_info_uses_idfa\": false$CR}"
+
+      - name: 版と Game Center の部品をいっしょに審査に出す（review・部品があるときだけ。足せなければ出さずに手順を出す）
+        if: env.MODE == 'review' && steps.gc.outputs.gc_pending == 'true'
+        run: python3 scripts/asc.py submit-review "$APP"
 
       - name: プレビュー動画を送る（store・preview があるアプリだけ。前の動画は入れかえ。失敗しても警告だけ）
         if: env.MODE == 'store' && steps.asc.outputs.has_app == 'true' && hashFiles(format('build/{0}/previews/preview.json', matrix.app)) != ''

@@ -15,6 +15,7 @@ shell/                   全部のゲームで共通のアプリ（SwiftUI ＋ W
                          kobo://localhost/ で開く（GameSchemeHandler.swift。fetch で曲や声を読むゲーム用・出したあとは切りかえない）
 scripts/prepare.py       ゲームを取りこみ、フォントを同梱し、オフラインの点検をして Xcode のプロジェクトを作る
 scripts/pages.py         サポートとプライバシーポリシーのページを docs/ に作る（GitHub Pages）
+scripts/gamecenter.py    ゲームの docs/kobo/gamecenter.json（Game Center のランキングと実績）の点検
 scripts/shots.py         App Store のスクショ（Linux の headless Chrome）
 scripts/promo.py         スクショを宣伝の絵（案A）に包む・縦の宣伝動画（app.json に promo があるアプリ）
 scripts/preview.py       App Store のプレビュー動画（本物の画面の録画＋テロップ。app.json に preview があるアプリ）
@@ -29,7 +30,7 @@ Actions の「iOS アプリ」を手で動かすときの「すること」:
 | check | オフラインの点検・スクショ（iPhone 6.9 インチ・iPad 13 インチ）・Mac で組み立ててシミュレーターで起動 | いらない |
 | testflight | 署名して TestFlight へ | いる |
 | store | ストアの文とスクショを送る（審査には出さない） | いる |
-| review | 審査に出す（文とスクショは送らない。先に store で送る。deliver は文を送ると審査の添付ファイルを消すため） | いる |
+| review | 審査に出す（文とスクショは送らない。先に store で送る。deliver は文を送ると審査の添付ファイルを消すため）。まだ審査を通っていない Game Center のランキング・実績があれば、版といっしょに出す（下の「Game Center」） | いる |
 | preview | プレビュー動画と縦の宣伝動画を作って成果物にするだけ（App Store Connect には送らない。Mac も使わない） | いらない |
 | experiment | 宣伝の絵に包んだスクショで、公開中のページの A/B テストを作る（審査への提出と開始はしない。Mac は使わない。下の「A/B テスト」） | いる |
 | attach | 枝 review-media の <app>/ の画面収録などを、直せる版の審査の添付ファイルにする（審査には出さない。Mac は使わない。下の「審査の添付ファイル」） | いる |
@@ -91,10 +92,26 @@ Actions の「App Store の数字」が毎日 10:17（日本時間）に、App S
 | `APP_SHARE(text)` | 共有メニュー。app.json の `storeUrl` があれば、改行してあとに足す |
 | `APP_REVIEW()` | App Store のレビューのお願い（StoreKit）。同じバージョンでは1回だけ、1.5秒待ってほかの画面が出ていないときに。出すかは Apple が決める（365日に3回まで・TestFlight では出ない） |
 | `APP_GAMECENTER` | Game Center にログインできたら `true`（そのとき window に `app-gamecenter` イベント） |
-| `APP_SCORE(n)` | 最高記録を送る（整数。ログインしていないときは何もしない） |
-| `APP_RANKING()` | ランキング（全員・全期間）を開く |
+| `APP_ACHIEVE(id, percent)` | 実績を報告（`percent` はなくてよい＝100）。ログイン前はためて、ログインのあとに送る。100% を送れたものはもう送らない。何回呼んでもよい |
+| `APP_ACHIEVEMENTS()` | 実績の画面を開く |
+| `APP_SCORE(n)` | 最高記録を送る（整数。ログイン前はいちばん大きい値を1つためて、ログインのあとに送る）。ランキングがあるアプリだけ |
+| `APP_RANKING()` | ランキング（全員・全期間）を開く。ランキングがあるアプリだけ |
 
-Game Center の3つは、app.json に `"gameCenter": {"leaderboard": "<ID>"}` があるアプリだけ。testflight のときに `scripts/asc.py setup --game-center` が App Store Connect の Game Center とリーダーボード（Best Score・整数・大きい順・最高記録）を、なければ作る。審査に出す前に、バージョンの画面で Game Center をオンにしてリーダーボードを足す（手作業）。
+Game Center の関数は、Game Center を使うアプリ（下の gamecenter.json があるか、app.json に `"gameCenter": {"leaderboard": "<ID>"}`）だけ。
+
+## Game Center（ゲームの docs/kobo/gamecenter.json・asc.py setup --game-center・gc-pending・submit-review）
+
+形と決まりはプロジェクトの claude/gamecenter-spec.md。ゲームのリポジトリの `docs/kobo/gamecenter.json`（game.ref の中）に、ランキング（`leaderboard`：id・name・suffix）と実績（`achievements`：id・points・hidden・image・ja と en-US の name・before・after）を書き、バッジの絵を `docs/kobo/achievements/<id>.png` に置く。
+
+- 点検：`python3 scripts/gamecenter.py <ゲームのリポジトリ>/docs/kobo/gamecenter.json [--leaderboard <app.json の ID>]`（Pillow が要る）。prepare.py もビルドのたびに同じ点検をして、まちがいがあれば止める
+  - 実績の id は英小文字・数字・_ で100文字まで・重なりなし（出したら変えない）／points は1〜100・合計1000まで／ja と en-US の name・before・after／バッジは 1024×1024 の PNG か JPEG・RGB（透明なし）・72ppi 以上
+  - ランキングの id は英数字・_・. で100文字まで。app.json の gameCenter.leaderboard と両方あってちがえば止める（race・hiragana-balance の ID は変えない）
+- prepare.py：gamecenter.json があれば、app.json に gameCenter がなくても Game Center を有効にする（entitlements・Info.plist の GameCenter・GameLeaderboardID）。build/<app>/gamecenter/ に写し、`GAMECENTER_JSON` を次のステップに渡す。docs/<app>/privacy.html に Game Center（実績があれば achievements）の文がなければ止める
+- pages.py：ゲームの game.ref の gamecenter.json を GitHub から読み、プライバシーポリシーに Game Center の節（最高スコア・取った実績）を入れる。game.ref を上げたら動かしてコミット
+- testflight：`asc.py setup --game-center` が Game Center・ランキング（名前と単位は gamecenter.json から。なければ「さいこうきろく」）・実績（referenceName と vendorIdentifier は id・points・showBeforeEarned＝hidden の逆・repeatable なし）・言語ごとの名前と説明・言語ごとのバッジの絵を、なければ作る。何回動かしても同じ（名前・説明・点・隠すか・絵がちがえば直す。直せないときは警告）。gamecenter.json にない実績は消さない（::notice::）
+- review：`asc.py gc-pending` がまだ審査に出していないランキング・実績の版（v2 の versions）を調べ、あれば fastlane は審査に出さず、`asc.py submit-review` が reviewSubmissions → reviewSubmissionItems（appStoreVersion・gameCenterLeaderboardVersion・gameCenterAchievementVersion）→ submitted=true で1つの審査にまとめて出す。部品を足せなかったときは出さずに止め（ジョブは赤くしない）、画面で足す手順を ::notice:: に出す。部品がなければ今までどおり fastlane が出す
+- テストは scripts/test_gamecenter.py（にせの App Store Connect・ios.yml の check で動く）
+- まだ本物で試していないこと：実績のローカライズ（API で 404 になる話がある。なったら警告して画面で入れる）・審査の部品の追加（v2 の versions の state の名前）。最初の review は【ios】のチャットで結果を見る
 
 ## プレビュー動画（app.json の preview・scripts/preview.py）
 
