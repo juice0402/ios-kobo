@@ -217,11 +217,11 @@ jobs:
           name: previews-${{ matrix.app }}
           path: build/${{ matrix.app }}/previews
 
-      - name: バンドル ID とアプリの確認（testflight で Game Center を使うアプリは、ランキング・実績・バッジの絵も用意）
+      - name: バンドル ID とアプリの確認（testflight・store で Game Center を使うアプリは、ランキング・実績・バッジの絵も用意）
         id: asc
         if: env.MODE != 'check'
         run: |
-          GC=""; [ "$MODE" = testflight ] && [ -n "${LEADERBOARD_ID:-}${GAMECENTER_JSON:-}" ] && GC="--game-center"
+          GC=""; { [ "$MODE" = testflight ] || [ "$MODE" = store ]; } && [ -n "${LEADERBOARD_ID:-}${GAMECENTER_JSON:-}" ] && GC="--game-center"
           python3 scripts/asc.py setup $GC
 
       - name: 版といっしょに出す Game Center の部品があるか（review・Game Center を使うアプリだけ。あれば審査は submit-review が出す）

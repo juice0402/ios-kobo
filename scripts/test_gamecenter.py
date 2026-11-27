@@ -396,6 +396,10 @@ class SetupTest(AscBase):
         img = next(b for p, b in self.posts(fake) if p == "/gameCenterAchievementImages")["data"]["attributes"]
         self.assertEqual(img["fileName"], "imo_first.png")
         self.assertEqual(len(self.puts), 4)
+        # 送ったあとの PATCH は uploaded だけ（実績の絵は sourceFileChecksum を受けつけない・11/27 本物で 409）
+        done = [b["data"]["attributes"] for m, p, b in fake.log
+                if m == "PATCH" and p.startswith("/gameCenterAchievementImages/")]
+        self.assertEqual(done, [{"uploaded": True}] * 4)
         # ランキングの名前と単位は gamecenter.json から
         names = {a["locale"]: a for _, a in fake.board_locs.values()}
         self.assertEqual(names["ja"]["formatterSuffix"], "こ")
