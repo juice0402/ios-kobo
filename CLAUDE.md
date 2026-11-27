@@ -4,6 +4,7 @@
 - shell/ は全部のゲームで共通。ゲームごとの違いは app.json → Info.plist の Game〜 の値で渡す（GameEntry・GameLangGlobals・GameSafeArea・GameFitSize）。ピンチ・ダブルタップの拡大は shell が止める（viewport に user-scalable=no を足す・GameWebView.swift）
 - アプリがゲームに渡すもの：`window.APP_LANGS`（端末の言語）・`APP_PLATFORM='ios'`・`APP_ZOOM`（iPad で拡大した倍率）。langGlobals の名前にも APP_LANGS を入れる
 - ゲームから呼べる関数（GameBridge.swift・README の表）：`APP_HAPTIC(kind)`・`APP_SHARE(text)`・`APP_REVIEW()`（レビューのお願い。同じバージョンで1回・何かをやりとげたあとに呼ぶ）・Game Center のアプリだけ `APP_GAMECENTER`・`APP_SCORE(n)`・`APP_RANKING()`。app.json の `gameCenter.leaderboard` → GameLeaderboardID と entitlements、`storeUrl` → GameStoreURL。署名なしの組み立てには entitlements が入らないので upload.sh が ad-hoc で入れる
+- Game Center の実績：ゲームの docs/kobo/gamecenter.json（形は claude/gamecenter-spec.md・点検は scripts/gamecenter.py・README の「Game Center」）→ prepare.py が点検して有効に・asc.py setup --game-center が実績とバッジを作る・review で gc-pending／submit-review が版といっしょに出す。`APP_ACHIEVE(id, percent)`・`APP_ACHIEVEMENTS()`。テストは scripts/test_gamecenter.py
 - スクショの台本（app.json の screenshots.scenes の js）はページの中で動く。ゲームの中の変数は見えない前提で、ボタンの click とキャンバスへの PointerEvent で動かす。直したら headless の Chrome で先に試す
 - スクショは Linux の headless Chrome で撮る（scripts/shots.py render。画面の大きさ・倍率・iPad の拡大はアプリと同じ計算）。Actions の Mac のシミュレーターは GPU がなくキャンバスのゲームで止まるので、起動の確認（scripts/smoke.sh）だけにする
 - 署名は App Store Connect API の Admin の鍵だけ（証明書・プロファイルは持たない）。scripts/upload.sh

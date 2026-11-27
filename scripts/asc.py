@@ -4,7 +4,11 @@
   python3 scripts/asc.py setup      → バンドル ID を登録（なければ）し、アプリができているか調べる。
                                       CONTENT_RIGHTS があれば「コンテンツの権利」をその値にする
   python3 scripts/asc.py setup --game-center
-                                    → そのうえで Game Center とリーダーボード（LEADERBOARD_ID）を用意する
+                                    → そのうえで Game Center・リーダーボード（LEADERBOARD_ID）・実績とバッジの絵
+                                      （GAMECENTER_JSON＝prepare.py が写した gamecenter.json）を用意する
+  python3 scripts/asc.py gc-pending A → アプリ A の版といっしょに審査に出す Game Center の部品があるか（gc_pending=true/false）
+  python3 scripts/asc.py submit-review A
+                                    → 版と Game Center の部品を1つの審査にまとめて出す（足せなければ出さずに手順を出す）
   python3 scripts/asc.py key-json F → fastlane 用の鍵ファイルを F に書く
   python3 scripts/asc.py previews D → D（build/<app>/previews）のプレビュー動画を、直せるバージョンに送る（前のは入れかえ）
   python3 scripts/asc.py analytics A → アプリ A の App Store の数字（表示回数・ページの表示・ダウンロード）を
@@ -18,7 +22,7 @@
   python3 scripts/asc.py promo A    → アプリ A の公開中の版（と直せる版）のプロモーション用テキストを
                                       store/<言語>/promotional_text.txt にそろえる（審査なし。BUNDLE_ID はいらない）
 
-環境変数: ASC_KEY_ID, ASC_ISSUER_ID, ASC_KEY_P8, BUNDLE_ID, APP_NAME_EN, CONTENT_RIGHTS（空でもよい。--game-center のときは LEADERBOARD_ID も）
+環境変数: ASC_KEY_ID, ASC_ISSUER_ID, ASC_KEY_P8, BUNDLE_ID, APP_NAME_EN, CONTENT_RIGHTS（空でもよい。Game Center は LEADERBOARD_ID・GAMECENTER_JSON。どちらも空でよい）
 """
 import json
 import os
@@ -131,12 +135,24 @@ def set_content_rights(app):
 # リーダーボードの決まり（全部のゲームで共通：整数・大きい順・最高記録を残す）
 LEADERBOARD = {"referenceName": "Best Score", "defaultFormatter": "INTEGER",
                "submissionType": "BEST_SCORE", "scoreSortType": "DESC"}
-LEADERBOARD_NAMES = {"ja": "さいこうきろく", "en-US": "Best Score"}
+LEADERBOARD_NAMES = {"ja": "さいこうきろく", "en-US": "Best Score"}   # gamecenter.json に leaderboard.name がないとき
 
 
-def setup_game_center(app_id):
-    """アプリの Game Center（gameCenterDetail）と、LEADERBOARD_ID のリーダーボード・名前（ja・en-US）を、なければ作る"""
-    lb_id = env("LEADERBOARD_ID")
+def gc_config():
+    """prepare.py が写した gamecenter.json（GAMECENTER_JSON。なければ None）を読んで点検する（scripts/gamecenter.py）"""
+    path = os.environ.get("GAMECENTER_JSON", "").strip()
+    if not path:
+        return None
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    import gamecenter
+    try:
+        return gamecenter.load(path)
+    except gamecenter.GameCenterError as e:
+        raise ValueError(f"gamecenter.json: {e}")
+
+
+def gc_detail(app_id, create=False):
+    """アプリの Game Center（gameCenterDetail）の id。なければ create のときだけ作る（作らないときは None）"""
     try:
         detail = call("GET", f"/apps/{app_id}/gameCenterDetail", soft=True).get("data")
     except ApiError as e:
@@ -144,13 +160,37 @@ def setup_game_center(app_id):
             raise
         detail = None
     if detail:
-        print("Game Center: 有効")
-    else:
-        detail = call("POST", "/gameCenterDetails", {"data": {"type": "gameCenterDetails", "relationships": {
-            "app": {"data": {"type": "apps", "id": app_id}}}}}, soft=True)["data"]
-        print("Game Center: 有効にしました")
+        if create:
+            print("Game Center: 有効")
+        return detail["id"]
+    if not create:
+        return None
+    detail = call("POST", "/gameCenterDetails", {"data": {"type": "gameCenterDetails", "relationships": {
+        "app": {"data": {"type": "apps", "id": app_id}}}}}, soft=True)["data"]
+    print("Game Center: 有効にしました")
+    return detail["id"]
 
-    boards = call("GET", f"/gameCenterDetails/{detail['id']}/gameCenterLeaderboards?limit=200", soft=True).get("data", [])
+
+def setup_game_center(app_id):
+    """アプリの Game Center（gameCenterDetail）・リーダーボード（LEADERBOARD_ID）・実績（GAMECENTER_JSON）を、なければ作る。
+    何回動かしても同じ（あるものは作らない。名前・説明・点・隠すかがちがえば直す。直せないときは警告だけ）。
+    gamecenter.json にない実績は消さない（::notice:: だけ。出した実績は消せず、ID も使い回せないため）"""
+    gc = gc_config()
+    lb_id = os.environ.get("LEADERBOARD_ID", "").strip()
+    if not lb_id and not gc:
+        sys.exit("::error::LEADERBOARD_ID も GAMECENTER_JSON もありません（prepare.py のあとに動かす）")
+    detail = gc_detail(app_id, create=True)
+    if lb_id:
+        setup_leaderboard(detail, lb_id, (gc or {}).get("leaderboard"))
+    if gc and gc["achievements"]:
+        setup_achievements(detail, gc["achievements"])
+    print("::notice::Game Center のランキングと実績は、審査（mode review）のときに版といっしょに出す（scripts/asc.py gc-pending・submit-review）")
+
+
+def setup_leaderboard(detail, lb_id, conf=None):
+    names = (conf or {}).get("name") or LEADERBOARD_NAMES
+    suffix = (conf or {}).get("suffix") or {}
+    boards = call("GET", f"/gameCenterDetails/{detail}/gameCenterLeaderboards?limit=200", soft=True).get("data", [])
     board = next((b for b in boards if b["attributes"].get("vendorIdentifier") == lb_id), None)
     if board:
         print(f"リーダーボード {lb_id}: あり")
@@ -158,22 +198,225 @@ def setup_game_center(app_id):
         board = call("POST", "/gameCenterLeaderboards", {"data": {
             "type": "gameCenterLeaderboards",
             "attributes": {**LEADERBOARD, "vendorIdentifier": lb_id},
-            "relationships": {"gameCenterDetail": {"data": {"type": "gameCenterDetails", "id": detail["id"]}}}}},
+            "relationships": {"gameCenterDetail": {"data": {"type": "gameCenterDetails", "id": detail}}}}},
             soft=True)["data"]
         print(f"リーダーボード {lb_id}: 作りました")
 
-    have = {l["attributes"].get("locale") for l in
+    have = {l["attributes"].get("locale"): l for l in
             call("GET", f"/gameCenterLeaderboards/{board['id']}/localizations?limit=50", soft=True).get("data", [])}
-    for locale, name in LEADERBOARD_NAMES.items():
-        if locale in have:
-            continue
-        call("POST", "/gameCenterLeaderboardLocalizations", {"data": {
-            "type": "gameCenterLeaderboardLocalizations",
-            "attributes": {"locale": locale, "name": name},
-            "relationships": {"gameCenterLeaderboard": {"data": {"type": "gameCenterLeaderboards", "id": board["id"]}}}}},
-            soft=True)
-        print(f"リーダーボードの名前 {locale}: {name}")
-    print("::notice::Game Center は、App Store Connect のバージョンの画面で「Game Center」をオンにし、リーダーボードを足してから審査に出す")
+    for locale, name in names.items():
+        want = {"name": name}
+        if suffix.get(locale):
+            want["formatterSuffix"] = suffix[locale]
+            want["formatterSuffixSingular"] = suffix[locale]
+        old = have.get(locale)
+        if old is None:
+            call("POST", "/gameCenterLeaderboardLocalizations", {"data": {
+                "type": "gameCenterLeaderboardLocalizations",
+                "attributes": {"locale": locale, **want},
+                "relationships": {"gameCenterLeaderboard": {"data": {"type": "gameCenterLeaderboards", "id": board["id"]}}}}},
+                soft=True)
+            print(f"リーダーボードの名前 {locale}: {name}")
+        elif any(old["attributes"].get(k) != v for k, v in want.items()):
+            soft_patch("gameCenterLeaderboardLocalizations", old["id"], want, f"リーダーボードの名前 {locale}")
+
+
+def soft_patch(kind, rid, attrs, label):
+    """直せるときだけ直す（審査に出したあとのものなど、断られたら警告だけ）"""
+    try:
+        call("PATCH", f"/{kind}/{rid}", {"data": {"type": kind, "id": rid, "attributes": attrs}}, soft=True)
+        print(f"{label}: 直しました（{', '.join(attrs)}）")
+        return True
+    except ApiError as e:
+        print(f"::warning::{label} を直せませんでした（App Store Connect の画面で確かめてください）: {e}")
+        return False
+
+
+def setup_achievements(detail, achievements):
+    """gamecenter.json の実績を、なければ作る（順番：実績 → 言語ごとの名前と説明 → 言語ごとのバッジの絵）"""
+    have = {a["attributes"].get("vendorIdentifier"): a for a in
+            call("GET", f"/gameCenterDetails/{detail}/gameCenterAchievements?limit=200", soft=True).get("data", [])}
+    made = 0
+    for a in achievements:
+        try:
+            made += setup_achievement(detail, a, have.get(a["id"]))
+        except (ApiError, OSError, ValueError, KeyError, TypeError) as e:   # 1つ失敗しても、ほかの実績は進める
+            print(f"::warning::実績 {a['id']} を用意できませんでした（App Store Connect の画面で確かめてください）: {e}")
+    extra = sorted(set(have) - {a["id"] for a in achievements})
+    if extra:
+        print(f"::notice::gamecenter.json にない実績が App Store Connect にあります（消していない）: {'・'.join(extra)}")
+    print(f"実績: {len(achievements)} こ（新しく作った {made} こ）")
+
+
+def setup_achievement(detail, a, old):
+    attrs = {"points": a["points"], "showBeforeEarned": not a["hidden"]}
+    made = 0
+    if old is None:
+        old = call("POST", "/gameCenterAchievements", {"data": {
+            "type": "gameCenterAchievements",
+            "attributes": {"referenceName": a["id"], "vendorIdentifier": a["id"], "repeatable": False, **attrs},
+            "relationships": {"gameCenterDetail": {"data": {"type": "gameCenterDetails", "id": detail}}}}}, soft=True)["data"]
+        print(f"実績 {a['id']}: 作りました（{a['points']} 点{'・隠し' if a['hidden'] else ''}）")
+        made = 1
+    elif any(old["attributes"].get(k) != v for k, v in attrs.items()):
+        soft_patch("gameCenterAchievements", old["id"], attrs, f"実績 {a['id']}")
+    try:
+        locs = call("GET", f"/gameCenterAchievements/{old['id']}/localizations?limit=50", soft=True).get("data", [])
+    except ApiError as e:
+        if e.code != 404:
+            raise
+        # 実績のローカライズが 404 になることがある（Apple のフォーラム 772800）。止めずに画面で入れてもらう
+        print(f"::warning::実績 {a['id']} の名前と説明を API で読めません（404）。App Store Connect の画面で入れてください")
+        return made
+    have = {l["attributes"].get("locale"): l for l in locs}
+    for locale in ("ja", "en-US"):
+        t = a[locale]
+        want = {"name": t["name"], "beforeEarnedDescription": t["before"], "afterEarnedDescription": t["after"]}
+        loc = have.get(locale)
+        if loc is None:
+            loc = call("POST", "/gameCenterAchievementLocalizations", {"data": {
+                "type": "gameCenterAchievementLocalizations", "attributes": {"locale": locale, **want},
+                "relationships": {"gameCenterAchievement": {"data": {"type": "gameCenterAchievements", "id": old["id"]}}}}},
+                soft=True)["data"]
+            print(f"実績 {a['id']} {locale}: {t['name']}")
+        elif any(loc["attributes"].get(k) != v for k, v in want.items()):
+            soft_patch("gameCenterAchievementLocalizations", loc["id"], want, f"実績 {a['id']} {locale} の文")
+        setup_achievement_image(loc["id"], a, locale)
+    return made
+
+
+def setup_achievement_image(loc_id, a, locale):
+    """言語ごとのバッジの絵。同じ名前・同じ大きさで処理ずみなら送らない。ちがう絵があれば消してから送る（1つの言語に1枚）"""
+    import hashlib
+    path = a["image"]
+    with open(path, "rb") as f:
+        data = f.read()
+    name = f"{a['id']}{os.path.splitext(str(path))[1].lower()}"
+    try:
+        img = call("GET", f"/gameCenterAchievementLocalizations/{loc_id}/gameCenterAchievementImage", soft=True).get("data")
+    except ApiError as e:
+        if e.code != 404:
+            raise
+        img = None
+    if img:
+        at = img.get("attributes") or {}
+        if at.get("fileName") == name and at.get("fileSize") == len(data) and \
+                (at.get("assetDeliveryState") or {}).get("state") in ("COMPLETE", "UPLOAD_COMPLETE"):
+            return
+        call("DELETE", f"/gameCenterAchievementImages/{img['id']}", soft=True)
+    made = call("POST", "/gameCenterAchievementImages", {"data": {
+        "type": "gameCenterAchievementImages", "attributes": {"fileName": name, "fileSize": len(data)},
+        "relationships": {"gameCenterAchievementLocalization": {"data": {
+            "type": "gameCenterAchievementLocalizations", "id": loc_id}}}}}, soft=True)["data"]
+    for op in made["attributes"].get("uploadOperations") or []:
+        put_bytes(op, data)
+    call("PATCH", f"/gameCenterAchievementImages/{made['id']}", {"data": {
+        "type": "gameCenterAchievementImages", "id": made["id"],
+        "attributes": {"uploaded": True, "sourceFileChecksum": hashlib.md5(data).hexdigest()}}}, soft=True)
+    print(f"実績 {a['id']} {locale}: バッジの絵を送りました{'（前の絵は入れかえ）' if img else ''}")
+
+
+# ---------------------------------------------------------------- Game Center の部品を版といっしょに審査に出す
+# 審査の3つの手順（reviewSubmissions → reviewSubmissionItems → PATCH submitted=true）。
+# 部品＝まだ審査を通っていないランキング・実績の版（v2 の gameCenterLeaderboardVersions・gameCenterAchievementVersions）。
+# 部品がないアプリは今までどおり fastlane deliver が審査に出す（ios.yml の review）。
+GC_SUBMITTABLE = {"PREPARE_FOR_SUBMISSION", "READY_FOR_REVIEW", "DEVELOPER_ACTION_NEEDED", "REJECTED", "DEVELOPER_REJECTED"}
+GC_MANUAL = ("App Store Connect の画面で：アプリ →「App Store」の版 →「Game Center」の欄でランキングと実績を足す"
+             " →「審査用に追加」→ 右上の「審査に提出」")
+
+
+def gc_versions(kind, rid):
+    """ランキングか実績の版のうち、まだ審査に出していないもの [(id, state)]"""
+    vs = call("GET", f"/v2/{kind}/{rid}/versions?limit=50", soft=True).get("data", [])
+    return [(v["id"], (v.get("attributes") or {}).get("state")) for v in vs
+            if (v.get("attributes") or {}).get("state") in GC_SUBMITTABLE]
+
+
+def gc_pending_items(app_id):
+    """版といっしょに出す Game Center の部品 [(関係の名前, 型, id, 名前)]。このアプリのもの（LEADERBOARD_ID・gamecenter.json）だけ"""
+    gc = gc_config()
+    lb_id = os.environ.get("LEADERBOARD_ID", "").strip()
+    want_ach = {a["id"] for a in (gc or {}).get("achievements", [])}
+    detail = gc_detail(app_id)
+    if not detail or (not lb_id and not want_ach):
+        return []
+    items = []
+    if lb_id:
+        for b in call("GET", f"/gameCenterDetails/{detail}/gameCenterLeaderboards?limit=200", soft=True).get("data", []):
+            if b["attributes"].get("vendorIdentifier") == lb_id:
+                items += [("gameCenterLeaderboardVersion", "gameCenterLeaderboardVersions", vid, f"ランキング {lb_id}（{st}）")
+                          for vid, st in gc_versions("gameCenterLeaderboards", b["id"])]
+    if want_ach:
+        for a in call("GET", f"/gameCenterDetails/{detail}/gameCenterAchievements?limit=200", soft=True).get("data", []):
+            aid = a["attributes"].get("vendorIdentifier")
+            if aid in want_ach:
+                items += [("gameCenterAchievementVersion", "gameCenterAchievementVersions", vid, f"実績 {aid}（{st}）")
+                          for vid, st in gc_versions("gameCenterAchievements", a["id"])]
+    return items
+
+
+def gc_pending(app):
+    """審査の前に：Game Center の部品があるか（gc_pending=true なら fastlane は審査に出さず、submit-review が出す）。
+    読めなかったときは false（今までどおり fastlane で出し、画面で足す手順を出す）"""
+    try:
+        conf_app, _ = review_version(app)
+        items = gc_pending_items(conf_app["id"])
+    except (SystemExit, ApiError, OSError, ValueError, KeyError, TypeError) as e:   # 直せる版がない・API で止まった も
+        print(f"::warning::Game Center の部品を調べられませんでした。審査は今までどおり出します: {e}")
+        print(f"::notice::最初のランキングと実績は版といっしょの審査が要る。{GC_MANUAL}（版を出す前に）")
+        output("gc_pending", "false")
+        return []
+    for _, _, _, label in items:
+        print(f"審査に出す部品: {label}")
+    if not items:
+        print("Game Center の部品: 審査に出すものなし（今までどおり fastlane で出す）")
+    output("gc_pending", "true" if items else "false")
+    return items
+
+
+def submit_review(app):
+    """版と Game Center の部品を1つの審査にまとめて出す。部品を足せなかったときは出さずに止め（ジョブは赤くしない）、
+    画面で足す手順を出す（最初のランキングと実績は版といっしょでないと出せないため）。出したら True"""
+    conf_app, ver = review_version(app)
+    items = gc_pending_items(conf_app["id"])
+    q = urllib.parse.urlencode({"filter[app]": conf_app["id"], "filter[platform]": "IOS", "filter[state]": "READY_FOR_REVIEW"})
+    subs = call("GET", f"/reviewSubmissions?{q}").get("data", [])
+    if subs:
+        sub = subs[0]["id"]
+        print("審査の下書き: あり（それに足す）")
+    else:
+        sub = call("POST", "/reviewSubmissions", {"data": {"type": "reviewSubmissions", "attributes": {"platform": "IOS"},
+                   "relationships": {"app": {"data": {"type": "apps", "id": conf_app["id"]}}}}})["data"]["id"]
+        print("審査の下書き: 作りました")
+
+    def add(rel, kind, rid, label):
+        try:
+            call("POST", "/reviewSubmissionItems", {"data": {"type": "reviewSubmissionItems", "relationships": {
+                "reviewSubmission": {"data": {"type": "reviewSubmissions", "id": sub}},
+                rel: {"data": {"type": kind, "id": rid}}}}}, soft=True)
+        except ApiError as e:
+            if e.code == 409 and "already" in str(e).lower():   # もう入っている（2回目に動かしたとき）
+                print(f"{label}: 審査の下書きに入っている")
+                return True
+            print(f"::warning::{label} を審査に足せませんでした: {e}")
+            return False
+        print(f"{label}: 審査の下書きに足しました")
+        return True
+
+    ok = add("appStoreVersion", "appStoreVersions", ver["id"], f"版 {ver['attributes'].get('versionString')}")
+    if not ok:
+        sys.exit("::error::版を審査の下書きに足せませんでした（App Store Connect の画面で確かめてください）")
+    failed = [label for rel, kind, rid, label in items if not add(rel, kind, rid, label)]
+    if failed:
+        print(f"::warning::Game Center の部品を API で足せなかったので、審査にはまだ出していません（{'・'.join(failed)}）")
+        print(f"::notice::{GC_MANUAL}")
+        output("submitted", "false")
+        return False
+    call("PATCH", f"/reviewSubmissions/{sub}", {"data": {"type": "reviewSubmissions", "id": sub,
+                                                       "attributes": {"submitted": True}}})
+    print(f"::notice::審査に出しました（版と Game Center の部品 {len(items)} こ）")
+    output("submitted", "true")
+    return True
 
 
 # ---------------------------------------------------------------- App プレビュー（動画）
@@ -715,6 +958,10 @@ def key_json(path):
 if __name__ == "__main__":
     if len(sys.argv) >= 2 and sys.argv[1] == "setup":
         setup(game_center="--game-center" in sys.argv[2:])
+    elif len(sys.argv) >= 3 and sys.argv[1] == "gc-pending":
+        gc_pending(sys.argv[2])
+    elif len(sys.argv) >= 3 and sys.argv[1] == "submit-review":
+        submit_review(sys.argv[2])
     elif len(sys.argv) >= 3 and sys.argv[1] == "key-json":
         key_json(sys.argv[2])
     elif len(sys.argv) >= 3 and sys.argv[1] == "previews":

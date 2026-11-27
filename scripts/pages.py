@@ -7,11 +7,15 @@ apps/<app>/app.json と apps/<app>/pages.json から、アプリごとに
   docs/<app>/index.html    … サポート（App Store の「サポート URL」）
   docs/<app>/privacy.html  … プライバシーポリシー
 を日本語と英語で1ページずつ作る。アプリを足したら動かして、docs/ もコミットする。
+Game Center を使うアプリ（app.json の gameCenter か、ゲームの game.ref の docs/kobo/gamecenter.json）は、
+プライバシーポリシーに Game Center の節を入れる（gamecenter.json は GitHub から読む。game.ref を上げたら動かしなおす）。
 """
 import html
 import json
 import shutil
+import urllib.error
 import urllib.parse
+import urllib.request
 from pathlib import Path
 
 from PIL import Image
@@ -106,15 +110,50 @@ def support(app, cfg, pg):
     return page("", "\n".join(parts), f'{cfg["name"]["ja"]} サポート', desc)
 
 
-def privacy(app, cfg, pg):
+def game_center_parts(cfg, fetch=None):
+    """Game Center で送るもの {"leaderboard", "achievements"} の集合。app.json の gameCenter.leaderboard と、
+    ゲームのリポジトリの game.ref の docs/kobo/gamecenter.json（なければ app.json だけ）から"""
+    parts = {"leaderboard"} if (cfg.get("gameCenter") or {}).get("leaderboard") else set()
+    g = cfg.get("game") or {}
+    if not g.get("repo") or not g.get("ref"):
+        return parts
+    url = f"https://raw.githubusercontent.com/{g['repo']}/{g['ref']}/docs/kobo/gamecenter.json"
+    try:
+        text = fetch(url) if fetch else urllib.request.urlopen(url, timeout=60).read().decode("utf-8")
+    except urllib.error.HTTPError as e:
+        if e.code == 404:
+            return parts
+        raise SystemExit(f"{url} を読めません: {e}")
+    if text is None:
+        return parts
+    data = json.loads(text)
+    if data.get("leaderboard"):
+        parts.add("leaderboard")
+    if data.get("achievements"):
+        parts.add("achievements")
+    return parts
+
+
+def privacy(app, cfg, pg, gc_parts=None):
     stored = cfg.get("privacy", {}).get("stored", {})
     date = pg.get("privacyDate", "")
-    if (cfg.get("gameCenter") or {}).get("leaderboard"):   # Game Center のランキングがあるアプリは、スコアを Apple に送ることを書く
+    gc_parts = gc_parts if gc_parts is not None else ({"leaderboard"} if (cfg.get("gameCenter") or {}).get("leaderboard") else set())
+    if gc_parts:   # Game Center を使うアプリは、スコアや実績を Apple に送ることを書く
         net_ja = "ゲームは端末の中で動きます。ネットへの通信は、下の Game Center だけです。"
         net_en = "The game runs on your device. Its only connection to the internet is Game Center, described below."
-        gc_ja = ("<h3>Game Center</h3>\n<p>Game Center にサインインしていると、最高スコアを Apple の Game Center に送り、ランキングにのせます。"
+        both = {"leaderboard", "achievements"} <= gc_parts
+        if both:
+            say_ja = "最高スコアと取った実績を Apple の Game Center に送り、ランキングと実績の画面にのせます。"
+            say_en = "your best score and the achievements you earn are sent to Apple's Game Center and shown on the leaderboard and in achievements."
+        elif "achievements" in gc_parts:
+            say_ja = "取った実績を Apple の Game Center に送り、実績の画面にのせます。"
+            say_en = "the achievements you earn are sent to Apple's Game Center and shown in achievements."
+        else:
+            say_ja = "最高スコアを Apple の Game Center に送り、ランキングにのせます。"
+            say_en = "your best score is sent to Apple's Game Center and shown on the leaderboard."
+        gc_ja = (f"<h3>Game Center</h3>\n<p>Game Center にサインインしていると、{say_ja}"
                  "サインインしていなければ送りません。Game Center での扱いは Apple のプライバシーポリシーに従います。</p>\n")
-        gc_en = ("<h3>Game Center</h3>\n<p>If you are signed in to Game Center, your best score is sent to Apple's Game Center and shown on the leaderboard. "
+        gc_en = (f"<h3>Game Center</h3>\n<p>If you are signed in to Game Center, {say_en} "
                  "Nothing is sent if you are not signed in. Apple's privacy policy applies to Game Center.</p>\n")
     else:
         net_ja, net_en = "ゲームは端末の中だけで動き、ネットへの通信はしません。", "The game runs entirely on your device and does not connect to the internet."
@@ -158,7 +197,7 @@ def main():
         out.mkdir()
         Image.open(d / cfg.get("icon", "icon.png")).convert("RGB").resize((128, 128), Image.LANCZOS).save(out / "icon.png", optimize=True)
         (out / "index.html").write_text(support(d.name, cfg, pg), encoding="utf-8")
-        (out / "privacy.html").write_text(privacy(d.name, cfg, pg), encoding="utf-8")
+        (out / "privacy.html").write_text(privacy(d.name, cfg, pg, game_center_parts(cfg)), encoding="utf-8")
         items.append(f'<li><a href="{d.name}/">{esc(cfg["name"]["ja"])} / {esc(cfg["name"]["en"])}</a></li>')
         print(f"docs/{d.name}/")
     body = ('<header><div><h1>あそびトーク ゲーム工房のアプリ</h1><p>Apps from the asobi-talk Game Workshop</p></div></header>'

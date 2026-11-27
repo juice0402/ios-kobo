@@ -50,6 +50,9 @@ enum GameSettings {
     /// Game Center のリーダーボードの ID（app.json の gameCenter.leaderboard）。ないアプリは Game Center を使わない
     static var leaderboardID: String? { nonEmpty(info["GameLeaderboardID"]) }
 
+    /// Game Center を使うか（ゲームの gamecenter.json か app.json の gameCenter があるアプリ。実績だけのアプリも）
+    static var gameCenter: Bool { (info["GameCenter"] as? Bool) == true || leaderboardID != nil }
+
     /// 共有の文のあとに足すストアの URL（app.json の storeUrl。公開のあとに入れる）
     static var storeURL: String? { nonEmpty(info["GameStoreURL"]) }
 
