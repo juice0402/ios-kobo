@@ -453,6 +453,10 @@ def make_metadata(app, cfg, out):
                 fail(f"{loc_dir.name}/{f.name} が {len(text)} 文字です（上限 {limit}）")
             if f.name == "keywords.txt" and (" ," in text or ", " in text):
                 fail(f"{loc_dir.name}/keywords.txt はカンマのまわりに空白を入れない")
+            import gamecenter   # App Store Connect が受けつけない字（11/27 説明の 🥔 🚓 で deliver が止まった）
+            bad = gamecenter.apple_bad_chars(text)
+            if bad:
+                fail(f"{loc_dir.name}/{f.name} に App Store Connect が受けつけない字 {' '.join(bad)}（絵文字・★ などの記号は使わない）")
             (dest / f.name).write_text(text + "\n", encoding="utf-8")
         page_lang = "ja" if loc_dir.name.startswith("ja") else "en"
         (dest / "privacy_url.txt").write_text(f"{PAGES_BASE}/{app}/privacy.html#{page_lang}\n", encoding="utf-8")

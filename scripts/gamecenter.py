@@ -37,6 +37,18 @@ def _text(v):
     return isinstance(v, str) and v.strip() != "" and "\n" not in v
 
 
+def apple_bad_chars(text):
+    """App Store Connect が受けつけない字（絵文字・★ などの記号）。11/27 の本物で、説明の 🥔 🚓 と実績の名前の ★ が断られた。
+    ■ などの図形（U+25A0〜）は通ったので入れない"""
+    bad = []
+    for ch in text:
+        o = ord(ch)
+        if o >= 0x1F000 or 0x2600 <= o <= 0x27BF or 0x2B00 <= o <= 0x2BFF or o in (0xFE0F, 0x200D, 0x20E3):
+            if ch not in bad:
+                bad.append(ch)
+    return bad
+
+
 def _check_image(path, label, problems):
     from PIL import Image
     if not path.is_file():
@@ -71,6 +83,9 @@ def _check_locales(obj, label, keys, problems, required=True):
         for k in keys:
             if not _text(d.get(k)):
                 problems.append(f"{label}: {loc}.{k} がない・空・改行入り")
+            elif apple_bad_chars(d[k]):
+                problems.append(f"{label}: {loc}.{k} に App Store Connect が受けつけない字 {' '.join(apple_bad_chars(d[k]))}"
+                                "（絵文字・★ などの記号は言葉にする）")
         extra = sorted(set(d) - set(keys))
         if extra:
             problems.append(f"{label}: {loc} に知らない項目 {', '.join(extra)}（使えるのは {', '.join(keys)}）")
