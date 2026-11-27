@@ -34,6 +34,7 @@ Actions の「iOS アプリ」を手で動かすときの「すること」:
 | preview | プレビュー動画と縦の宣伝動画を作って成果物にするだけ（App Store Connect には送らない。Mac も使わない） | いらない |
 | experiment | 宣伝の絵に包んだスクショで、公開中のページの A/B テストを作る（審査への提出と開始はしない。Mac は使わない。下の「A/B テスト」） | いる |
 | attach | 枝 review-media の <app>/ の画面収録などを、直せる版の審査の添付ファイルにする（審査には出さない。Mac は使わない。下の「審査の添付ファイル」） | いる |
+| promo | store/<言語>/promotional_text.txt を、公開中の版（と直せる版）のプロモーション用テキストにする（審査なし。Mac もスクショも使わない。下の「プロモーション用テキスト」） | いる |
 
 store では、app.json に preview があるアプリはプレビュー動画も作り、文とスクショのあとに `asc.py previews` で送る（前の動画は入れかえ。fastlane deliver はプレビュー動画を送れないため App Store Connect API で）。promo があるアプリは、スクショが宣伝の絵（案A）に包まれてから送られる。
 
@@ -81,6 +82,16 @@ Actions の「App Store の数字」が毎日 10:17（日本時間）に、App S
 - 順番は store → attach → review。store（fastlane deliver）は文を送るとき添付を消すので、store でも枝にファイルがあれば最後に送りなおす
 - 同じ名前の添付は入れかえ、名前と大きさが同じで処理ずみなら送らない。画面で入れたほかの名前の添付はさわらない。審査中・公開中の版には添付できない（止める）
 - テストは `python3 scripts/test_asc_attach.py`（にせの App Store Connect。ios.yml の check でも動く）
+
+## プロモーション用テキスト（asc.py promo）
+
+説明のいちばん上に出る短い文（170 文字まで）。公開中のアプリでも、審査なしでいつでも変えられる（説明・キーワード・スクショは次の版まで変えられない）。
+
+1. `apps/<app>/store/<言語>/promotional_text.txt` を直して main に入れる
+2. Actions の「iOS アプリ」を、app にアプリ、すること に promo をえらんで動かす。`asc.py promo` が、公開中・リリース待ち・直せる版の、同じ言語のプロモーション用テキストを入れかえる
+
+- 同じ文なら送らない。store/ に文がない言語はさわらない。審査中の版は断られることがある（警告だけで続ける）
+- テストは `python3 scripts/test_asc_promo.py`（にせの App Store Connect。ios.yml の check でも動く）
 
 ## ゲームから呼べる関数（shell/Sources/GameBridge.swift）
 
