@@ -1,6 +1,6 @@
 {
   "bundleId": "com.asobi-talk.poitto-imo-kojo",
-  "version": "1.0.1",
+  "version": "1.1",
   "storeUrl": "https://apps.apple.com/jp/app/id6838553073",
   "name": {
     "ja": "ぽいっと！いも工場",
@@ -8,7 +8,7 @@
   },
   "game": {
     "repo": "juice0402/poitto-imo-kojo",
-    "ref": "47771863a7d7caa4a0ff2857925db00eca674f0f",
+    "ref": "ba9c5434861feaf334e2ea9379fcefb17a33ecc2",
     "file": "index.html"
   },
   "languages": [

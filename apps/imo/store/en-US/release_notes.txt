@@ -1,1 +1,1 @@
-We updated the description on the App Store page. The game itself is the same as in the previous version.
+Added Game Center leaderboards and achievements. We also updated the description on the App Store page.

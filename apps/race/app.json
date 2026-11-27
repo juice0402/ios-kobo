@@ -1,6 +1,6 @@
 {
   "bundleId": "com.asobi-talk.buttobi-chase",
-  "version": "1.0",
+  "version": "1.1",
   "storeUrl": "https://apps.apple.com/jp/app/id6838573216",
   "name": {
     "ja": "ぶっとびチェイス",
@@ -8,7 +8,7 @@
   },
   "game": {
     "repo": "juice0402/buttobi-chase",
-    "ref": "21ea0eb9e825bf942a90767b4516d4d57fbcce5a",
+    "ref": "c56b73492914d8c76c290cbf26ea227312938de6",
     "file": "index.html"
   },
   "languages": [

@@ -1,0 +1,1 @@
+Added Game Center achievements. Fixed the screen sometimes zooming when pinched. We also updated the description on the App Store page.
