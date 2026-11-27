@@ -312,7 +312,7 @@ def setup_achievement_image(loc_id, a, locale):
         put_bytes(op, data)
     call("PATCH", f"/gameCenterAchievementImages/{made['id']}", {"data": {
         "type": "gameCenterAchievementImages", "id": made["id"],
-        "attributes": {"uploaded": True, "sourceFileChecksum": hashlib.md5(data).hexdigest()}}}, soft=True)
+        "attributes": {"uploaded": True}}}, soft=True)   # 実績の絵は sourceFileChecksum を受けつけない（11/27 本物で 409）
     print(f"実績 {a['id']} {locale}: バッジの絵を送りました{'（前の絵は入れかえ）' if img else ''}")
 
 
