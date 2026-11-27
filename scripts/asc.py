@@ -15,6 +15,8 @@
                                       審査への提出と開始はしない。BUNDLE_ID はいらない）
   python3 scripts/asc.py attach A D → D（枝 review-media の A/）の画面収録などを、アプリ A の直せる版の
                                       審査の添付ファイルにする（同じ名前は入れかえ。BUNDLE_ID はいらない）
+  python3 scripts/asc.py promo A    → アプリ A の公開中の版（と直せる版）のプロモーション用テキストを
+                                      store/<言語>/promotional_text.txt にそろえる（審査なし。BUNDLE_ID はいらない）
 
 環境変数: ASC_KEY_ID, ASC_ISSUER_ID, ASC_KEY_P8, BUNDLE_ID, APP_NAME_EN, CONTENT_RIGHTS（空でもよい。--game-center のときは LEADERBOARD_ID も）
 """
@@ -362,6 +364,71 @@ def attach(app, folder, wait=120):
     return sent
 
 
+# ---------------------------------------------------------------- プロモーション用テキスト（審査なしでいつでも変えられる）
+# store（fastlane deliver）は直せる版にしか送れない。公開中の版のプロモーション用テキストは、版のローカライズを PATCH して変える。
+# 送る先：公開中・リリース待ちの版と、直せる版。審査中の版も試し、断られたら警告だけ。
+PROMO_LIMIT = 170
+PROMO_STATES = {"READY_FOR_SALE", "PENDING_DEVELOPER_RELEASE", "PENDING_APPLE_RELEASE",
+                "WAITING_FOR_REVIEW", "IN_REVIEW"} | EDITABLE
+PROMO_SOFT = {"WAITING_FOR_REVIEW", "IN_REVIEW", "PENDING_APPLE_RELEASE"}   # 断られても止めない
+
+
+def promo_texts(app):
+    """{言語: プロモーション用テキスト}（apps/<app>/store/<言語>/promotional_text.txt）"""
+    base = f"apps/{app}/store"
+    out = {}
+    for loc in sorted(os.listdir(base)) if os.path.isdir(base) else []:
+        p = os.path.join(base, loc, "promotional_text.txt")
+        if os.path.isfile(p):
+            with open(p, encoding="utf-8") as f:
+                t = f.read().strip()
+            if len(t) > PROMO_LIMIT:
+                sys.exit(f"::error::{p} が {len(t)} 文字です（{PROMO_LIMIT} 文字まで）")
+            if t:
+                out[loc] = t
+    return out
+
+
+def promo(app):
+    """公開中の版などのプロモーション用テキストを、store/<言語>/promotional_text.txt にそろえる。変えた数を返す"""
+    texts = promo_texts(app)
+    if not texts:
+        sys.exit(f"::error::apps/{app}/store/<言語>/promotional_text.txt がありません")
+    with open(f"apps/{app}/app.json", encoding="utf-8") as f:
+        bundle = json.load(f)["bundleId"]
+    q = urllib.parse.urlencode({"filter[bundleId]": bundle})
+    apps = [d for d in call("GET", f"/apps?{q}").get("data", []) if d["attributes"]["bundleId"] == bundle]
+    if not apps:
+        sys.exit(f"::error::App Store Connect にアプリ {bundle} がありません")
+    versions = call("GET", f"/apps/{apps[0]['id']}/appStoreVersions?filter[platform]=IOS&limit=20").get("data", [])
+    targets = [v for v in versions if v["attributes"].get("appStoreState") in PROMO_STATES]
+    if not targets:
+        states = "・".join(f"{v['attributes'].get('versionString')} {v['attributes'].get('appStoreState')}" for v in versions[:3])
+        sys.exit(f"::error::プロモーション用テキストを送れる版がありません（いま：{states}）")
+    changed = 0
+    for v in targets:
+        vs, state = v["attributes"].get("versionString"), v["attributes"].get("appStoreState")
+        locs = call("GET", f"/appStoreVersions/{v['id']}/appStoreVersionLocalizations?limit=50").get("data", [])
+        for loc in locs:
+            name = loc["attributes"].get("locale")
+            if name not in texts:
+                print(f"::notice::版 {vs} の {name} は store/ に文がないので、さわっていない")
+                continue
+            if (loc["attributes"].get("promotionalText") or "").strip() == texts[name]:
+                print(f"版 {vs}（{state}）{name}: 同じ文（送らない）")
+                continue
+            body = {"data": {"type": "appStoreVersionLocalizations", "id": loc["id"],
+                             "attributes": {"promotionalText": texts[name]}}}
+            try:
+                call("PATCH", f"/appStoreVersionLocalizations/{loc['id']}", body, soft=state in PROMO_SOFT)
+            except ApiError as e:
+                print(f"::warning::版 {vs}（{state}）{name} は変えられませんでした（審査中の版は断られることがある）: {e}")
+                continue
+            print(f"版 {vs}（{state}）{name}: プロモーション用テキストを変えました")
+            changed += 1
+    return changed
+
+
 # ---------------------------------------------------------------- App Store の数字（Analytics Reports API）
 # 報告の名前・列・値は Apple のドキュメント（analytics-reports の app-store-discovery-and-engagement・app-download）のとおり。
 # 値は大文字・小文字を区別しない（同じドキュメント）。知らない値・足りない列があれば、勝手に数えずに止める。
@@ -656,6 +723,8 @@ if __name__ == "__main__":
         analytics(sys.argv[2])
     elif len(sys.argv) >= 4 and sys.argv[1] == "attach":
         attach(sys.argv[2], sys.argv[3])
+    elif len(sys.argv) >= 3 and sys.argv[1] == "promo":
+        promo(sys.argv[2])
     elif len(sys.argv) >= 4 and sys.argv[1] == "experiment":
         import argparse
         a = argparse.ArgumentParser(prog="asc.py experiment")
