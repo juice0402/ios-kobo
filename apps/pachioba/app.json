@@ -1,6 +1,6 @@
 {
   "bundleId": "com.asobi-talk.pachioba",
-  "version": "1.1.1",
+  "version": "1.2",
   "storeUrl": "https://apps.apple.com/jp/app/id6832710968",
   "name": {
     "ja": "パチおば",
@@ -8,7 +8,7 @@
   },
   "game": {
     "repo": "juice0402/kugidama-defense",
-    "ref": "d590c0033f1ee80a48916f296b032bbe66179395",
+    "ref": "71bc3695fa92355b25e03211a1d2e7079efb83c2",
     "file": "index.html"
   },
   "languages": [

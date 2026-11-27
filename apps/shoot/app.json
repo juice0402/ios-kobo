@@ -1,6 +1,6 @@
 {
   "bundleId": "com.asobi-talk.zenbunose-ship",
-  "version": "1.0.1",
+  "version": "1.1",
   "storeUrl": "https://apps.apple.com/jp/app/id6838732701",
   "name": {
     "ja": "ぜんぶのせシップ",
@@ -8,7 +8,7 @@
   },
   "game": {
     "repo": "juice0402/shoot-game",
-    "ref": "0995a0a06e2f7c8cf03487240ad2e4d37d998a29",
+    "ref": "97e69d8bfade2215b126341f90e4e17c9d7cd8b6",
     "file": "index.html"
   },
   "languages": [
