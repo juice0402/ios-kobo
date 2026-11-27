@@ -124,6 +124,17 @@ class CheckTest(unittest.TestCase):
         self.assertIn("ja.before", p)
         self.assertIn("知らない項目 memo", p)
 
+    def test_apple_bad_chars(self):
+        # 11/27 本物で断られた：実績の名前の ★・説明の 🥔 🚓。■ や「」・、は通った
+        a = ach("x")
+        a["ja"]["name"] = "ぜんぶの街で★3つ"
+        a["en-US"]["after"] = "Got it 🚓"
+        p = self.problems({"achievements": [a]})
+        self.assertIn("ja.name に App Store Connect が受けつけない字 ★", p)
+        self.assertIn("en-US.after に App Store Connect が受けつけない字 🚓", p)
+        self.assertEqual(gamecenter.apple_bad_chars("■ ぽいっと！「わる芋」・ラインを2つに。〜"), [])
+        self.assertEqual(gamecenter.apple_bad_chars("FEVER👻✨⭐"), ["👻", "✨", "⭐"])
+
     def test_images(self):
         data = {"achievements": [ach("big"), ach("alpha"), ach("none"), ach("gif", image="achievements/gif.gif"),
                                  ach("out", image="../secret.png"), ach("lowdpi")]}
