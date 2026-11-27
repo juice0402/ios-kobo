@@ -8,7 +8,7 @@
 - スクショの台本（app.json の screenshots.scenes の js）はページの中で動く。ゲームの中の変数は見えない前提で、ボタンの click とキャンバスへの PointerEvent で動かす。直したら headless の Chrome で先に試す
 - スクショは Linux の headless Chrome で撮る（scripts/shots.py render。画面の大きさ・倍率・iPad の拡大はアプリと同じ計算）。Actions の Mac のシミュレーターは GPU がなくキャンバスのゲームで止まるので、起動の確認（scripts/smoke.sh）だけにする
 - 署名は App Store Connect API の Admin の鍵だけ（証明書・プロファイルは持たない）。scripts/upload.sh
-- ストアの文は site-principles.md の「文章」の決まりを守る。長さは prepare.py が点検する
+- ストアの文は site-principles.md の「文章」の決まりを守る。説明とプロモーション用テキストだけは商品紹介の形（キャッチ1〜2行・■の特徴4〜5こ・「こんな人におすすめ」。本当のことだけ・ほかのゲームの名前なし・AI特有の絵文字なし。11/26 の例外）。ネタバレを書かない：全部でいくつのコース・ステージ・コレクションか、後半のステージやボスや仲間の名前は出さない。ボリュームは「60種類以上」のように切り下げた数で（しょーくん 11/26）。長さは prepare.py が点検する
 - 絵はプロジェクトの claude/game-art-rule.md（A・C だけアプリに入れる）。ゲームごとに apps/<ゲーム>/ART.md に絵と音の出どころを書く
 - app.json の "origin": "scheme"＝ゲームを file:// ではなく kobo://localhost/ で開く（shell/Sources/GameSchemeHandler.swift・fetch で曲や声を読むゲーム。いまは okashi だけ）。localStorage のセーブの場所が変わるので、出したあとのアプリで切りかえない
 - app.json の zoom "game"＝ゲームが自分で拡大（アプリはページを拡大しない）。skin＝game.extra の skins/<名前> を同梱し、window.APP_SKIN で渡す（prepare.py の inject_skin）
@@ -18,3 +18,4 @@
 - App Store の数字は metrics.yml（毎日）→ `asc.py analytics <app>` → 枝 metrics の metrics/<app>.csv（main には push しない）。知らない報告・列・値は数えずに止める。テストは scripts/test_asc_analytics.py
 - A/B テスト（プロダクトページの最適化）は ios.yml の mode experiment → `asc.py experiment <app> <フォルダ>`（作るだけ。審査への提出と開始は画面で。動いている・終わったテストはさわらない）。テストは scripts/test_asc_experiment.py
 - 審査の添付ファイル（実機の画面収録など）は ios.yml の mode attach → `asc.py attach <app> <フォルダ>`。ファイルはデータだけの枝 review-media の <app>/（main に入れない）。store の deliver は添付を消すので、store も最後に送りなおす。テストは scripts/test_asc_attach.py
+- プロモーション用テキストは ios.yml の mode promo → `asc.py promo <app>`（公開中の版も審査なしで変わる・11/26〜）。テストは scripts/test_asc_promo.py
