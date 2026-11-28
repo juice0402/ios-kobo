@@ -74,10 +74,29 @@ def call(method, path, body=None, soft=False):
         with urllib.request.urlopen(req, timeout=60) as r:
             return json.loads(r.read() or b"{}")
     except urllib.error.HTTPError as e:
-        detail = e.read().decode(errors="ignore")[:600]
+        detail = _brief(e.read().decode(errors="ignore"))
         if soft:
             raise ApiError(e.code, f"{method} {path} → {detail}")
         sys.exit(f"::error::App Store Connect API {method} {path} → {e.code} {detail}")
+
+
+def _brief(text, limit=1500):
+    """API のエラーを短く：errors と associatedErrors の code・detail・source だけを並べる（11/28 600 文字で切れて、肝心の理由が見えなかった）"""
+    try:
+        errs = json.loads(text).get("errors") or []
+    except ValueError:
+        return text[:limit]
+    out = []
+    def one(e, pre=""):
+        src = e.get("source") or {}
+        where = src.get("pointer") or src.get("parameter") or ""
+        out.append(f"{pre}{e.get('code', '')}: {e.get('detail') or e.get('title') or ''}{' (' + where + ')' if where else ''}")
+    for e in errs:
+        one(e)
+        for res, subs in ((e.get("meta") or {}).get("associatedErrors") or {}).items():
+            for s in subs:
+                one(s, pre=f"  └ {res.rsplit('/', 1)[-1][:8]} ")
+    return (" / ".join(out) or text)[:limit]
 
 
 def output(key, value):
@@ -374,11 +393,32 @@ def gc_pending(app):
     return items
 
 
+def attach_build(conf_app, ver):
+    """版にビルドがついていなければ、同じ版の番号の、使えるいちばん新しいビルドをつける。
+    fastlane deliver はビルドを審査に出すときにだけ選ぶので、Game Center の部品があって deliver で出さないとき
+    版にビルドがなく、reviewSubmissionItems が「not in valid state」で断られた（11/28）"""
+    vs = ver["attributes"].get("versionString")
+    now = (call("GET", f"/appStoreVersions/{ver['id']}/build").get("data") or {})
+    if now.get("id"):
+        print(f"版 {vs} のビルド: {(now.get('attributes') or {}).get('version', now['id'])}（ついている）")
+        return now["id"]
+    q = urllib.parse.urlencode({"filter[app]": conf_app["id"], "filter[preReleaseVersion.version]": vs,
+                                "filter[processingState]": "VALID", "sort": "-uploadedDate", "limit": 1})
+    builds = call("GET", f"/builds?{q}").get("data", [])
+    if not builds:
+        sys.exit(f"::error::版 {vs} に使えるビルドがありません（testflight を先に動かし、処理が終わってから）")
+    b = builds[0]
+    call("PATCH", f"/appStoreVersions/{ver['id']}/relationships/build", {"data": {"type": "builds", "id": b["id"]}})
+    print(f"版 {vs} にビルド {(b.get('attributes') or {}).get('version', b['id'])} をつけました")
+    return b["id"]
+
+
 def submit_review(app):
     """版と Game Center の部品を1つの審査にまとめて出す。部品を足せなかったときは出さずに止め（ジョブは赤くしない）、
     画面で足す手順を出す（最初のランキングと実績は版といっしょでないと出せないため）。出したら True"""
     conf_app, ver = review_version(app)
     items = gc_pending_items(conf_app["id"])
+    attach_build(conf_app, ver)
     q = urllib.parse.urlencode({"filter[app]": conf_app["id"], "filter[platform]": "IOS", "filter[state]": "READY_FOR_REVIEW"})
     subs = call("GET", f"/reviewSubmissions?{q}").get("data", [])
     if subs:
