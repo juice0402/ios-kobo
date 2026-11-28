@@ -264,6 +264,8 @@ class FakeASC:
         self.item_error = item_error          # reviewSubmissionItems の部品で返すエラー
         self.versions = versions or {}        # 実績・ランキングの id → [state]
         self.subs = []
+        self.ver_build = None                 # 版についているビルド（None＝ついていない）
+        self.builds = [{"id": "B9", "attributes": {"version": "171.1"}}]
 
     def new(self, p):
         self.n += 1
@@ -341,6 +343,13 @@ class FakeASC:
             rid = path.split("/")[3]
             return {"data": [{"id": f"{rid}-v{k}", "attributes": {"state": st}}
                              for k, st in enumerate(self.versions.get(rid, ["LIVE"]))]}
+        if path == "/appStoreVersions/V1/build":
+            return {"data": self.ver_build}
+        if path.startswith("/builds?"):
+            return {"data": self.builds}
+        if method == "PATCH" and path == "/appStoreVersions/V1/relationships/build":
+            self.ver_build = {"id": body["data"]["id"], "attributes": {"version": "171.1"}}
+            return {}
         if path.startswith("/reviewSubmissions?"):
             return {"data": [{"id": s} for s in self.subs]}
         if method == "POST" and path == "/reviewSubmissions":
@@ -538,7 +547,8 @@ class ReviewTest(AscBase):
         r, out = quiet(asc.submit_review, "imo")
         self.assertIs(r, True, out)
         steps = [(m, p) for m, p, _ in fake.log if m != "GET"]
-        self.assertEqual(steps, [("POST", "/reviewSubmissions"), ("POST", "/reviewSubmissionItems"),
+        self.assertEqual(steps, [("PATCH", "/appStoreVersions/V1/relationships/build"),   # ビルドを先につける
+                                 ("POST", "/reviewSubmissions"), ("POST", "/reviewSubmissionItems"),
                                  ("POST", "/reviewSubmissionItems"), ("POST", "/reviewSubmissionItems"),
                                  ("PATCH", "/reviewSubmissions/SUB1")])
         rels = [list(b["data"]["relationships"]) for m, p, b in fake.log if p == "/reviewSubmissionItems"]
@@ -549,6 +559,32 @@ class ReviewTest(AscBase):
                          {"type": "gameCenterAchievementVersions", "id": f"{ids['imo_first']}-v0"})
         patch = fake.log[-1][2]
         self.assertEqual(patch["data"]["attributes"], {"submitted": True})
+
+    def test_build_already_attached_is_kept(self):
+        fake, _ = self.made({"imo_first": ["PREPARE_FOR_SUBMISSION"]})
+        fake.ver_build = {"id": "B5", "attributes": {"version": "170.1"}}
+        r, out = quiet(asc.submit_review, "imo")
+        self.assertIs(r, True, out)
+        self.assertFalse(any(p.endswith("/relationships/build") for _, p, _ in fake.log))
+        self.assertIn("ついている", out)
+
+    def test_no_build_stops_before_draft(self):
+        fake, _ = self.made({"imo_first": ["PREPARE_FOR_SUBMISSION"]})
+        fake.builds = []
+        r, out = quiet(asc.submit_review, "imo")
+        self.assertIsInstance(r, SystemExit)
+        self.assertIn("使えるビルドがありません", str(r))
+        self.assertFalse(any(p == "/reviewSubmissions" for _, p, _ in fake.log))
+
+    def test_api_error_text_shows_associated_errors(self):
+        text = json.dumps({"errors": [{"code": "STATE_ERROR.ENTITY_STATE_INVALID", "title": "not in valid state",
+                                        "detail": "This resource cannot be reviewed",
+                                        "meta": {"associatedErrors": {"/v1/appStoreVersions/4f1dbabf-58ca": [
+                                            {"code": "ENTITY_ERROR.RELATIONSHIP.INVALID", "detail": "You must select a build",
+                                             "source": {"pointer": "/data/relationships/build"}}]}}}]})
+        s = asc._brief(text)
+        self.assertIn("ENTITY_ERROR.RELATIONSHIP.INVALID: You must select a build (/data/relationships/build)", s)
+        self.assertIn("STATE_ERROR.ENTITY_STATE_INVALID", s)
 
     def test_uses_existing_draft(self):
         fake, _ = self.made({"imo_first": ["PREPARE_FOR_SUBMISSION"]})
@@ -566,7 +602,7 @@ class ReviewTest(AscBase):
         fake, _ = self.made({"imo_first": ["PREPARE_FOR_SUBMISSION"]}, item_error=(409, "relationship not allowed"))
         r, out = quiet(asc.submit_review, "imo")
         self.assertIs(r, False)
-        self.assertFalse(any(m == "PATCH" for m, _, _ in fake.log))
+        self.assertFalse(any(m == "PATCH" and p.startswith("/reviewSubmissions") for m, p, _ in fake.log))
         self.assertIn("::notice::App Store Connect の画面で", out)
         self.assertIn("submitted=false", out)
 
